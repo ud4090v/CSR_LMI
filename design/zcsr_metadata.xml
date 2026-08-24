@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="1.0"
+    xmlns:edmx="http://schemas.microsoft.com/ado/2007/06/edmx"
+    xmlns:m="http://schemas.microsoft.com/ado/2007/08/dataservices/metadata"
+    xmlns:sap="http://www.sap.com/Protocols/SAPData">
+  <edmx:DataServices m:DataServiceVersion="2.0">
+    <Schema Namespace="ZCSR_CHECKLIST_SRV" xml:lang="en" sap:schema-version="1"
+        xmlns="http://schemas.microsoft.com/ado/2008/09/edm">
+
+      <!-- ======================================================= -->
+      <!-- ChecklistHeader                                          -->
+      <!-- ======================================================= -->
+      <EntityType Name="ChecklistHeader" sap:content-version="1">
+        <Key>
+          <PropertyRef Name="HeaderGuid"/>
+        </Key>
+        <Property Name="HeaderGuid"   Type="Edm.Guid"     Nullable="false" sap:label="Checklist ID" sap:creatable="false" sap:updatable="false"/>
+        <Property Name="Chktype"      Type="Edm.String"   MaxLength="4"  sap:label="Checklist Type" sap:updatable="false" sap:value-list="fixed-values"/>
+        <Property Name="PeriodYear"   Type="Edm.String"   MaxLength="4"  sap:label="Year" sap:updatable="false"/>
+        <Property Name="PeriodQtr"    Type="Edm.String"   MaxLength="1"  sap:label="Quarter" sap:updatable="false"/>
+        <Property Name="MarketSeg"    Type="Edm.String"   MaxLength="10" sap:label="Market Segment" sap:updatable="false"/>
+        <Property Name="Lob"          Type="Edm.String"   MaxLength="10" sap:label="Line of Business" sap:updatable="false"/>
+        <Property Name="Analyst"      Type="Edm.String"   MaxLength="12" sap:label="Analyst" sap:creatable="false" sap:updatable="false"/>
+        <Property Name="BackupUser"   Type="Edm.String"   MaxLength="12" sap:label="Backup Analyst" sap:creatable="false" sap:updatable="false"/>
+        <Property Name="Status"       Type="Edm.String"   MaxLength="2"  sap:label="Status" sap:creatable="false" sap:updatable="false"/>
+        <Property Name="StatusText"   Type="Edm.String"   MaxLength="30" sap:label="Status" sap:creatable="false" sap:updatable="false"/>
+        <Property Name="CatalogVers"  Type="Edm.String"   MaxLength="4"  sap:label="Catalog Version" sap:creatable="false" sap:updatable="false"/>
+        <Property Name="SignedBy"     Type="Edm.String"   MaxLength="12" sap:label="Signed By" sap:creatable="false" sap:updatable="false"/>
+        <Property Name="SignedAt"     Type="Edm.DateTime" Precision="7"  sap:label="Signed At" sap:creatable="false" sap:updatable="false" sap:display-format="Date"/>
+        <Property Name="DueDate"      Type="Edm.DateTime" Precision="0"  sap:label="Due Date" sap:creatable="false" sap:updatable="false" sap:display-format="Date"/>
+        <Property Name="CompletionPct" Type="Edm.Byte"                   sap:label="Completion %" sap:creatable="false" sap:updatable="false"/>
+        <Property Name="AiFlagCount"  Type="Edm.Int16"                   sap:label="AI Flags" sap:creatable="false" sap:updatable="false"/>
+        <Property Name="CreatedBy"    Type="Edm.String"   MaxLength="12" sap:label="Created By" sap:creatable="false" sap:updatable="false"/>
+        <Property Name="CreatedAt"    Type="Edm.DateTime" Precision="7"  sap:label="Created At" sap:creatable="false" sap:updatable="false"/>
+        <Property Name="ChangedBy"    Type="Edm.String"   MaxLength="12" sap:label="Changed By" sap:creatable="false" sap:updatable="false"/>
+        <Property Name="ChangedAt"    Type="Edm.DateTime" Precision="7"  sap:label="Changed At" sap:creatable="false" sap:updatable="false"/>
+        <NavigationProperty Name="ToItems"       Relationship="ZCSR_CHECKLIST_SRV.HeaderToItems"       FromRole="FromRole_HeaderToItems"       ToRole="ToRole_HeaderToItems"/>
+        <NavigationProperty Name="ToAttachments" Relationship="ZCSR_CHECKLIST_SRV.HeaderToAttachments" FromRole="FromRole_HeaderToAttachments" ToRole="ToRole_HeaderToAttachments"/>
+        <NavigationProperty Name="ToReviews"     Relationship="ZCSR_CHECKLIST_SRV.HeaderToReviews"     FromRole="FromRole_HeaderToReviews"     ToRole="ToRole_HeaderToReviews"/>
+        <NavigationProperty Name="ToAiFlags"     Relationship="ZCSR_CHECKLIST_SRV.HeaderToAiFlags"     FromRole="FromRole_HeaderToAiFlags"     ToRole="ToRole_HeaderToAiFlags"/>
+      </EntityType>
+
+      <!-- ======================================================= -->
+      <!-- ChecklistItem (catalog fields denormalized)              -->
+      <!-- ======================================================= -->
+      <EntityType Name="ChecklistItem" sap:content-version="1">
+        <Key>
+          <PropertyRef Name="HeaderGuid"/>
+          <PropertyRef Name="QuestionId"/>
+        </Key>
+        <Property Name="HeaderGuid"   Type="Edm.Guid"    Nullable="false" sap:label="Checklist ID" sap:updatable="false"/>
+        <Property Name="QuestionId"   Type="Edm.String"  Nullable="false" MaxLength="10" sap:label="Question" sap:updatable="false"/>
+        <Property Name="Response"     Type="Edm.String"                 sap:label="Response"/>
+        <Property Name="NaFlag"       Type="Edm.Boolean"                sap:label="N/A"/>
+        <Property Name="ValidState"   Type="Edm.String"  MaxLength="1"  sap:label="Validation" sap:creatable="false" sap:updatable="false"/>
+        <!-- denormalized catalog fields: read-only -->
+        <Property Name="Section"      Type="Edm.String"  MaxLength="40" sap:label="Section" sap:creatable="false" sap:updatable="false"/>
+        <Property Name="Seqnr"        Type="Edm.String"  MaxLength="4"  sap:label="Order" sap:creatable="false" sap:updatable="false"/>
+        <Property Name="Title"        Type="Edm.String"  MaxLength="60" sap:label="Procedure Title" sap:creatable="false" sap:updatable="false"/>
+        <Property Name="QuestionText" Type="Edm.String"                 sap:label="Requirement Text" sap:creatable="false" sap:updatable="false"/>
+        <Property Name="ExampleText"  Type="Edm.String"                 sap:label="Worked Example" sap:creatable="false" sap:updatable="false"/>
+        <Property Name="Inptype"      Type="Edm.String"  MaxLength="1"  sap:label="Input Type" sap:creatable="false" sap:updatable="false"/>
+        <Property Name="RespRequired" Type="Edm.Boolean"                sap:label="Response Required" sap:creatable="false" sap:updatable="false"/>
+        <Property Name="AttachMode"   Type="Edm.String"  MaxLength="1"  sap:label="Attachment Mode" sap:creatable="false" sap:updatable="false"/>
+        <Property Name="NaAllowed"    Type="Edm.Boolean"                sap:label="N/A Allowed" sap:creatable="false" sap:updatable="false"/>
+        <Property Name="ChangedBy"    Type="Edm.String"  MaxLength="12" sap:label="Changed By" sap:creatable="false" sap:updatable="false"/>
+        <Property Name="ChangedAt"    Type="Edm.DateTime" Precision="7" sap:label="Changed At" sap:creatable="false" sap:updatable="false"/>
+        <NavigationProperty Name="ToAttachments" Relationship="ZCSR_CHECKLIST_SRV.ItemToAttachments" FromRole="FromRole_ItemToAttachments" ToRole="ToRole_ItemToAttachments"/>
+      </EntityType>
+
+      <!-- ======================================================= -->
+      <!-- Attachment — media entity                                -->
+      <!-- ======================================================= -->
+      <EntityType Name="Attachment" m:HasStream="true" sap:content-version="1">
+        <Key>
+          <PropertyRef Name="AttachGuid"/>
+        </Key>
+        <Property Name="AttachGuid" Type="Edm.Guid"    Nullable="false" sap:label="Attachment ID" sap:creatable="false" sap:updatable="false"/>
+        <Property Name="HeaderGuid" Type="Edm.Guid"    Nullable="false" sap:label="Checklist ID" sap:updatable="false"/>
+        <Property Name="QuestionId" Type="Edm.String"  MaxLength="10"   sap:label="Question" sap:updatable="false"/>
+        <Property Name="Filename"   Type="Edm.String"  MaxLength="255"  sap:label="File Name" sap:updatable="false"/>
+        <Property Name="Mimetype"   Type="Edm.String"  MaxLength="128"  sap:label="MIME Type" sap:creatable="false" sap:updatable="false"/>
+        <Property Name="Filesize"   Type="Edm.Int32"                    sap:label="Size (bytes)" sap:creatable="false" sap:updatable="false"/>
+        <Property Name="Sha256"     Type="Edm.String"  MaxLength="64"   sap:label="SHA-256" sap:creatable="false" sap:updatable="false"/>
+        <Property Name="UploadedBy" Type="Edm.String"  MaxLength="12"   sap:label="Uploaded By" sap:creatable="false" sap:updatable="false"/>
+        <Property Name="UploadedAt" Type="Edm.DateTime" Precision="7"   sap:label="Uploaded At" sap:creatable="false" sap:updatable="false"/>
+        <Property Name="Deleted"    Type="Edm.Boolean"                  sap:label="Deleted" sap:creatable="false" sap:updatable="false"/>
+      </EntityType>
+
+      <!-- ======================================================= -->
+      <!-- Review                                                   -->
+      <!-- ======================================================= -->
+      <EntityType Name="Review" sap:content-version="1">
+        <Key>
+          <PropertyRef Name="ReviewGuid"/>
+        </Key>
+        <Property Name="ReviewGuid" Type="Edm.Guid"    Nullable="false" sap:label="Review ID" sap:creatable="false" sap:updatable="false"/>
+        <Property Name="HeaderGuid" Type="Edm.Guid"    Nullable="false" sap:label="Checklist ID" sap:updatable="false"/>
+        <Property Name="Reviewer"   Type="Edm.String"  MaxLength="12"   sap:label="Reviewer" sap:creatable="false" sap:updatable="false"/>
+        <Property Name="Outcome"    Type="Edm.String"  MaxLength="2"    sap:label="Outcome"/>
+        <Property Name="Notes"      Type="Edm.String"                   sap:label="Review Notes"/>
+        <Property Name="ReviewedAt" Type="Edm.DateTime" Precision="7"   sap:label="Reviewed At" sap:creatable="false" sap:updatable="false"/>
+      </EntityType>
+
+      <!-- ======================================================= -->
+      <!-- AiFlag — read-only advisory                              -->
+      <!-- ======================================================= -->
+      <EntityType Name="AiFlag" sap:content-version="1">
+        <Key>
+          <PropertyRef Name="FlagGuid"/>
+        </Key>
+        <Property Name="FlagGuid"   Type="Edm.Guid"    Nullable="false" sap:label="Flag ID"/>
+        <Property Name="HeaderGuid" Type="Edm.Guid"    Nullable="false" sap:label="Checklist ID"/>
+        <Property Name="QuestionId" Type="Edm.String"  MaxLength="10"   sap:label="Question"/>
+        <Property Name="Severity"   Type="Edm.String"  MaxLength="1"    sap:label="Severity"/>
+        <Property Name="FlagText"   Type="Edm.String"                   sap:label="Finding"/>
+        <Property Name="ModelInfo"  Type="Edm.String"  MaxLength="64"   sap:label="Model"/>
+        <Property Name="CreatedAt"  Type="Edm.DateTime" Precision="7"   sap:label="Created At"/>
+      </EntityType>
+
+      <!-- ======================================================= -->
+      <!-- Question — read-only catalog (admin UI)                  -->
+      <!-- ======================================================= -->
+      <EntityType Name="Question" sap:content-version="1">
+        <Key>
+          <PropertyRef Name="QuestionId"/>
+          <PropertyRef Name="Version"/>
+        </Key>
+        <Property Name="QuestionId"   Type="Edm.String" Nullable="false" MaxLength="10" sap:label="Question"/>
+        <Property Name="Version"      Type="Edm.String" Nullable="false" MaxLength="4"  sap:label="Version"/>
+        <Property Name="Chktype"      Type="Edm.String" MaxLength="4"  sap:label="Checklist Type"/>
+        <Property Name="Section"      Type="Edm.String" MaxLength="40" sap:label="Section"/>
+        <Property Name="Seqnr"        Type="Edm.String" MaxLength="4"  sap:label="Order"/>
+        <Property Name="QuestionText" Type="Edm.String"                sap:label="Question Text"/>
+        <Property Name="Inptype"      Type="Edm.String" MaxLength="1"  sap:label="Input Type"/>
+        <Property Name="Required"     Type="Edm.Boolean"               sap:label="Required"/>
+        <Property Name="ValidFrom"    Type="Edm.DateTime" Precision="0" sap:label="Valid From" sap:display-format="Date"/>
+      </EntityType>
+
+      <!-- ======================================================= -->
+      <!-- Value helps                                              -->
+      <!-- ======================================================= -->
+      <EntityType Name="MarketSegVH" sap:content-version="1">
+        <Key><PropertyRef Name="MarketSeg"/></Key>
+        <Property Name="MarketSeg"   Type="Edm.String" Nullable="false" MaxLength="10" sap:label="Market Segment"/>
+        <Property Name="Lob"         Type="Edm.String" MaxLength="10"   sap:label="Line of Business"/>
+        <Property Name="Description" Type="Edm.String" MaxLength="60"   sap:label="Description"/>
+      </EntityType>
+
+      <EntityType Name="LobVH" sap:content-version="1">
+        <Key><PropertyRef Name="Lob"/></Key>
+        <Property Name="Lob"         Type="Edm.String" Nullable="false" MaxLength="10" sap:label="Line of Business"/>
+        <Property Name="Description" Type="Edm.String" MaxLength="60"   sap:label="Description"/>
+      </EntityType>
+
+      <EntityType Name="AnalystVH" sap:content-version="1">
+        <Key><PropertyRef Name="Uname"/></Key>
+        <Property Name="Uname"    Type="Edm.String" Nullable="false" MaxLength="12" sap:label="User"/>
+        <Property Name="FullName" Type="Edm.String" MaxLength="80"   sap:label="Name"/>
+      </EntityType>
+
+      <!-- ======================================================= -->
+      <!-- Associations                                             -->
+      <!-- ======================================================= -->
+      <Association Name="HeaderToItems" sap:content-version="1">
+        <End Type="ZCSR_CHECKLIST_SRV.ChecklistHeader" Multiplicity="1" Role="FromRole_HeaderToItems"/>
+        <End Type="ZCSR_CHECKLIST_SRV.ChecklistItem"   Multiplicity="*" Role="ToRole_HeaderToItems"/>
+        <ReferentialConstraint>
+          <Principal Role="FromRole_HeaderToItems"><PropertyRef Name="HeaderGuid"/></Principal>
+          <Dependent Role="ToRole_HeaderToItems"><PropertyRef Name="HeaderGuid"/></Dependent>
+        </ReferentialConstraint>
+      </Association>
+
+      <Association Name="HeaderToAttachments" sap:content-version="1">
+        <End Type="ZCSR_CHECKLIST_SRV.ChecklistHeader" Multiplicity="1" Role="FromRole_HeaderToAttachments"/>
+        <End Type="ZCSR_CHECKLIST_SRV.Attachment"      Multiplicity="*" Role="ToRole_HeaderToAttachments"/>
+        <ReferentialConstraint>
+          <Principal Role="FromRole_HeaderToAttachments"><PropertyRef Name="HeaderGuid"/></Principal>
+          <Dependent Role="ToRole_HeaderToAttachments"><PropertyRef Name="HeaderGuid"/></Dependent>
+        </ReferentialConstraint>
+      </Association>
+
+      <Association Name="HeaderToReviews" sap:content-version="1">
+        <End Type="ZCSR_CHECKLIST_SRV.ChecklistHeader" Multiplicity="1" Role="FromRole_HeaderToReviews"/>
+        <End Type="ZCSR_CHECKLIST_SRV.Review"          Multiplicity="*" Role="ToRole_HeaderToReviews"/>
+        <ReferentialConstraint>
+          <Principal Role="FromRole_HeaderToReviews"><PropertyRef Name="HeaderGuid"/></Principal>
+          <Dependent Role="ToRole_HeaderToReviews"><PropertyRef Name="HeaderGuid"/></Dependent>
+        </ReferentialConstraint>
+      </Association>
+
+      <Association Name="HeaderToAiFlags" sap:content-version="1">
+        <End Type="ZCSR_CHECKLIST_SRV.ChecklistHeader" Multiplicity="1" Role="FromRole_HeaderToAiFlags"/>
+        <End Type="ZCSR_CHECKLIST_SRV.AiFlag"          Multiplicity="*" Role="ToRole_HeaderToAiFlags"/>
+        <ReferentialConstraint>
+          <Principal Role="FromRole_HeaderToAiFlags"><PropertyRef Name="HeaderGuid"/></Principal>
+          <Dependent Role="ToRole_HeaderToAiFlags"><PropertyRef Name="HeaderGuid"/></Dependent>
+        </ReferentialConstraint>
+      </Association>
+
+      <Association Name="ItemToAttachments" sap:content-version="1">
+        <End Type="ZCSR_CHECKLIST_SRV.ChecklistItem" Multiplicity="1" Role="FromRole_ItemToAttachments"/>
+        <End Type="ZCSR_CHECKLIST_SRV.Attachment"    Multiplicity="*" Role="ToRole_ItemToAttachments"/>
+        <ReferentialConstraint>
+          <Principal Role="FromRole_ItemToAttachments">
+            <PropertyRef Name="HeaderGuid"/><PropertyRef Name="QuestionId"/>
+          </Principal>
+          <Dependent Role="ToRole_ItemToAttachments">
+            <PropertyRef Name="HeaderGuid"/><PropertyRef Name="QuestionId"/>
+          </Dependent>
+        </ReferentialConstraint>
+      </Association>
+
+      <!-- ======================================================= -->
+      <!-- Entity container                                         -->
+      <!-- ======================================================= -->
+      <EntityContainer Name="ZCSR_CHECKLIST_SRV_Entities" m:IsDefaultEntityContainer="true" sap:supported-formats="atom json xlsx">
+
+        <EntitySet Name="ChecklistHeaderSet" EntityType="ZCSR_CHECKLIST_SRV.ChecklistHeader"
+                   sap:creatable="false" sap:updatable="false" sap:deletable="false"
+                   sap:searchable="true" sap:content-version="1"/>
+        <EntitySet Name="ChecklistItemSet" EntityType="ZCSR_CHECKLIST_SRV.ChecklistItem"
+                   sap:creatable="false" sap:updatable="true" sap:deletable="false"
+                   sap:content-version="1"/>
+        <EntitySet Name="AttachmentSet" EntityType="ZCSR_CHECKLIST_SRV.Attachment"
+                   sap:creatable="true" sap:updatable="false" sap:deletable="true"
+                   sap:content-version="1"/>
+        <EntitySet Name="ReviewSet" EntityType="ZCSR_CHECKLIST_SRV.Review"
+                   sap:creatable="false" sap:updatable="false" sap:deletable="false"
+                   sap:content-version="1"/>
+        <EntitySet Name="AiFlagSet" EntityType="ZCSR_CHECKLIST_SRV.AiFlag"
+                   sap:creatable="false" sap:updatable="false" sap:deletable="false"
+                   sap:content-version="1"/>
+        <EntitySet Name="QuestionSet" EntityType="ZCSR_CHECKLIST_SRV.Question"
+                   sap:creatable="false" sap:updatable="false" sap:deletable="false"
+                   sap:content-version="1"/>
+        <EntitySet Name="MarketSegVHSet" EntityType="ZCSR_CHECKLIST_SRV.MarketSegVH"
+                   sap:creatable="false" sap:updatable="false" sap:deletable="false"
+                   sap:addressable="false" sap:content-version="1"/>
+        <EntitySet Name="LobVHSet" EntityType="ZCSR_CHECKLIST_SRV.LobVH"
+                   sap:creatable="false" sap:updatable="false" sap:deletable="false"
+                   sap:addressable="false" sap:content-version="1"/>
+        <EntitySet Name="AnalystVHSet" EntityType="ZCSR_CHECKLIST_SRV.AnalystVH"
+                   sap:creatable="false" sap:updatable="false" sap:deletable="false"
+                   sap:addressable="false" sap:content-version="1"/>
+
+        <AssociationSet Name="HeaderToItemsSet" Association="ZCSR_CHECKLIST_SRV.HeaderToItems" sap:content-version="1">
+          <End EntitySet="ChecklistHeaderSet" Role="FromRole_HeaderToItems"/>
+          <End EntitySet="ChecklistItemSet"   Role="ToRole_HeaderToItems"/>
+        </AssociationSet>
+        <AssociationSet Name="HeaderToAttachmentsSet" Association="ZCSR_CHECKLIST_SRV.HeaderToAttachments" sap:content-version="1">
+          <End EntitySet="ChecklistHeaderSet" Role="FromRole_HeaderToAttachments"/>
+          <End EntitySet="AttachmentSet"      Role="ToRole_HeaderToAttachments"/>
+        </AssociationSet>
+        <AssociationSet Name="HeaderToReviewsSet" Association="ZCSR_CHECKLIST_SRV.HeaderToReviews" sap:content-version="1">
+          <End EntitySet="ChecklistHeaderSet" Role="FromRole_HeaderToReviews"/>
+          <End EntitySet="ReviewSet"          Role="ToRole_HeaderToReviews"/>
+        </AssociationSet>
+        <AssociationSet Name="HeaderToAiFlagsSet" Association="ZCSR_CHECKLIST_SRV.HeaderToAiFlags" sap:content-version="1">
+          <End EntitySet="ChecklistHeaderSet" Role="FromRole_HeaderToAiFlags"/>
+          <End EntitySet="AiFlagSet"          Role="ToRole_HeaderToAiFlags"/>
+        </AssociationSet>
+        <AssociationSet Name="ItemToAttachmentsSet" Association="ZCSR_CHECKLIST_SRV.ItemToAttachments" sap:content-version="1">
+          <End EntitySet="ChecklistItemSet" Role="FromRole_ItemToAttachments"/>
+          <End EntitySet="AttachmentSet"    Role="ToRole_ItemToAttachments"/>
+        </AssociationSet>
+
+        <!-- ================= Function Imports ================= -->
+        <FunctionImport Name="SubmitChecklist" ReturnType="ZCSR_CHECKLIST_SRV.ChecklistHeader" EntitySet="ChecklistHeaderSet"
+                        m:HttpMethod="POST" sap:action-for="ZCSR_CHECKLIST_SRV.ChecklistHeader">
+          <Parameter Name="HeaderGuid" Type="Edm.Guid" Mode="In"/>
+        </FunctionImport>
+
+        <FunctionImport Name="StartReview" ReturnType="ZCSR_CHECKLIST_SRV.ChecklistHeader" EntitySet="ChecklistHeaderSet"
+                        m:HttpMethod="POST" sap:action-for="ZCSR_CHECKLIST_SRV.ChecklistHeader">
+          <Parameter Name="HeaderGuid" Type="Edm.Guid" Mode="In"/>
+        </FunctionImport>
+
+        <FunctionImport Name="CompleteReview" ReturnType="ZCSR_CHECKLIST_SRV.ChecklistHeader" EntitySet="ChecklistHeaderSet"
+                        m:HttpMethod="POST" sap:action-for="ZCSR_CHECKLIST_SRV.ChecklistHeader">
+          <Parameter Name="HeaderGuid" Type="Edm.Guid"   Mode="In"/>
+          <Parameter Name="Outcome"    Type="Edm.String" Mode="In" MaxLength="2"/>
+          <Parameter Name="Notes"      Type="Edm.String" Mode="In"/>
+        </FunctionImport>
+
+        <FunctionImport Name="ReassignChecklist" ReturnType="ZCSR_CHECKLIST_SRV.ChecklistHeader" EntitySet="ChecklistHeaderSet"
+                        m:HttpMethod="POST" sap:action-for="ZCSR_CHECKLIST_SRV.ChecklistHeader">
+          <Parameter Name="HeaderGuid" Type="Edm.Guid"   Mode="In"/>
+          <Parameter Name="NewAnalyst" Type="Edm.String" Mode="In" MaxLength="12"/>
+        </FunctionImport>
+
+        <FunctionImport Name="GenerateInstances" ReturnType="Collection(ZCSR_CHECKLIST_SRV.ChecklistHeader)" EntitySet="ChecklistHeaderSet"
+                        m:HttpMethod="POST">
+          <Parameter Name="Chktype"    Type="Edm.String" Mode="In" MaxLength="4"/>
+          <Parameter Name="PeriodYear" Type="Edm.String" Mode="In" MaxLength="4"/>
+          <Parameter Name="PeriodQtr"  Type="Edm.String" Mode="In" MaxLength="1"/>
+        </FunctionImport>
+
+        <FunctionImport Name="TriggerAiTriage" ReturnType="Collection(ZCSR_CHECKLIST_SRV.AiFlag)" EntitySet="AiFlagSet"
+                        m:HttpMethod="POST" sap:action-for="ZCSR_CHECKLIST_SRV.ChecklistHeader">
+          <Parameter Name="HeaderGuid" Type="Edm.Guid" Mode="In"/>
+        </FunctionImport>
+
+        <FunctionImport Name="ExportEvidence" ReturnType="Edm.Binary"
+                        m:HttpMethod="GET">
+          <Parameter Name="HeaderGuid" Type="Edm.Guid" Mode="In"/>
+        </FunctionImport>
+
+      </EntityContainer>
+    </Schema>
+  </edmx:DataServices>
+</edmx:Edmx>
