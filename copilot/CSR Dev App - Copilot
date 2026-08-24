@@ -1,0 +1,192 @@
+# CSR Auditing Application — Copilot Development Instructions
+
+You are assisting development of the **CSR Auditing Application**: a freestyle SAPUI5 app
+replacing an Excel/SharePoint quarterly compliance-checklist process, backed by a classic
+ABAP OData V2 service on SAP ECC. Follow these instructions for every suggestion in this
+repository. Where these instructions conflict with your general knowledge, **these win**.
+
+---
+
+## 1. Hard platform constraints — never violate
+
+| Layer | Constraint |
+|---|---|
+| Backend | SAP ECC8 (Suite-4-HANA), **classic ABAP OO only** |
+| Service | SAP Gateway **OData V2** via SEGW (`ZCSR_CHECKLIST_SRV`), DPC_EXT/MPC_EXT classes |
+| Frontend | **Freestyle SAPUI5 1.108** (FES 2022 baseline), XML views, JS controllers |
+| Deployment | BSP repository on the Front-End Server, launchpad tile |
+| AI | In-house LLM platform, OpenAI-compatible API, called **from ABAP only** (SM59 + CL_HTTP_CLIENT) |
+
+**Forbidden — do not generate:**
+- RAP, CDS behavior definitions, BDEF/BIL, `@ObjectModel`/`@UI` annotations, ABAP Cloud syntax
+- OData **V4** anything: `sap.ui.model.odata.v4.ODataModel`, `/IWBEP/` V4 patterns, `$batch` V4 payloads
+- Fiori Elements, `sap.fe.*`, annotation-driven UIs, Flexible Programming Model
+- SAP BTP services, CAP, Node backends, `@sap/cds`
+- TypeScript (this project is plain JS with `sap.ui.define` AMD modules)
+- `localStorage` / `sessionStorage` / IndexedDB — all state lives in the OData backend or in-memory JSONModel
+- Any UI5 API you are not certain exists in **1.108**. If unsure a class/method exists in 1.108, say so and propose a verified alternative — **never fabricate API names, methods, or parameters.**
+
+---
+
+## 2. Repository layout
+
+```
+webapp/
+  manifest.json            # app descriptor: models, routing (see §4)
+  Component.js             # role bootstrap, device model, central error handler
+  index.html               # local dev entry
+  view/App.view.xml        # sap.m.App root
+  view/Worklist.view.xml         + controller/Worklist.controller.js
+  view/ChecklistDetail.view.xml  + controller/ChecklistDetail.controller.js
+  view/ReviewQueue.view.xml      + controller/ReviewQueue.controller.js
+  view/AdminBoard.view.xml       + controller/AdminBoard.controller.js
+  view/NotFound.view.xml
+  fragment/UploadDialog.fragment.xml
+  fragment/ReturnNotesDialog.fragment.xml
+  fragment/ReassignDialog.fragment.xml
+  fragment/ExportDialog.fragment.xml
+  fragment/MessagePopover.fragment.xml
+  model/formatter.js       # status/severity/color formatters
+  model/roles.js           # AN/RV/AD/AU role helper
+  css/style.css            # .zcsrInput .zcsrAttach .zcsrComment
+  i18n/i18n.properties     # ALL user-facing text — never hardcode strings in views/controllers
+  localService/metadata.xml       # copy of ZCSR_CHECKLIST_SRV metadata (source of truth)
+  localService/mockserver.js      # sap.ui.core.util.MockServer setup
+  localService/mockdata/*.json    # seeded from client templates
+abap/                      # reference ABAP sources (SE80-managed; kept here for review only)
+```
+
+- App ID: `zcsr.checklist`. Namespace every module `zcsr/checklist/...`.
+- The **OData contract is `localService/metadata.xml`** — treat it as read-only truth.
+  Generate bindings/types from it; never invent properties that are not in it.
+
+## 3. Data contract (OData V2, service `ZCSR_CHECKLIST_SRV`)
+
+Entity sets (keys in parentheses):
+- `ChecklistHeaderSet` (HeaderGuid) — read-only CRUD; status NEVER changes via property update
+- `ChecklistItemSet` (HeaderGuid, QuestionId) — MERGE-updatable: `Response`, `NaFlag` only
+- `AttachmentSet` (AttachGuid) — **media entity**: create via POST stream + `slug`, read via `$value`, delete = soft delete
+- `ReviewSet`, `AiFlagSet` (read-only), `QuestionSet` (read-only)
+- Value helps: `MarketSegVHSet` (has `Lob` for cascading), `LobVHSet`, `AnalystVHSet`
+
+Navigation from `ChecklistHeader`: `ToItems`, `ToAttachments`, `ToReviews`, `ToAiFlags`.
+`ChecklistItem` → `ToAttachments` (per-question evidence).
+
+`ChecklistItem` carries denormalized catalog fields (read-only): `Section`, `Seqnr`,
+`Title`, `QuestionText`, `ExampleText`, `Inptype` (`I`|`C`), `RespRequired`,
+`AttachMode` (`N`|`O`|`R`), `NaAllowed`.
+
+Function imports (all POST unless noted) — **the only way state changes**:
+- `SubmitChecklist(HeaderGuid)` — validates server-side; success stamps signature+timestamp
+- `StartReview(HeaderGuid)`, `CompleteReview(HeaderGuid, Outcome, Notes)`
+- `ReassignChecklist(HeaderGuid, NewAnalyst)`
+- `GenerateInstances(Chktype, PeriodYear, PeriodQtr)`
+- `TriggerAiTriage(HeaderGuid)`
+- `ExportEvidence(HeaderGuid)` — GET, returns binary ZIP; trigger a browser download
+
+Status domain: `NS` Not Started → `IP` In Progress → `SB` Submitted → `UR` Under Review →
+`CP` Completed (locked) or `RT` Returned (→ back to IP). The UI never writes `Status`.
+
+## 4. Routing (manifest)
+
+| Route | Pattern | View | Access |
+|---|---|---|---|
+| `worklist` | `` (empty) | Worklist | AN/AD |
+| `detail` | `checklist/{headerGuid}` | ChecklistDetail, mode=edit | owner/backup/AD |
+| `review` | `review` | ReviewQueue | RV/AD |
+| `detailReview` | `review/{headerGuid}` | ChecklistDetail, mode=review | RV/AD |
+| `admin` | `admin` | AdminBoard | AD |
+| `notFound` | `:all*:` | NotFound | — |
+
+One ChecklistDetail view serves both modes; `{app>/mode}` drives editability via expression
+binding. Deep links from reminder e-mails hit `#/checklist/{guid}` directly — guard in
+`onPatternMatched`, route 403s to NotFound. UI role gating is convenience only; the ABAP
+backend AUTHORITY-CHECK is authoritative.
+
+## 5. ChecklistDetail — procedure cards (core screen)
+
+Render one **card per `ChecklistItem` with `Inptype === 'I'`**, ordered by `Seqnr`,
+grouped by `Section`. Items with `Inptype === 'C'` render in a collapsed
+**Instructions panel** above the first card (auto-expand on first open of a checklist).
+
+Card anatomy, top to bottom:
+1. **Title bar** — `"{Seqnr} · {Title}"` + completion indicator (✓ answered / open / N/A)
+2. **Requirement text** — `sap.m.Text` with `maxLines="3"` + a "Show more" toggle
+   (`QuestionText` runs 600–1,600 chars; never render fully expanded by default)
+3. **Example** — collapsed `sap.m.Panel` rendering `ExampleText` (skip if empty)
+4. **Response** — `sap.m.TextArea` (growing), CSS class `zcsrInput` (green).
+   An **N/A `sap.m.Switch` renders ONLY when `NaAllowed`**; toggling on disables the
+   TextArea, sets `NaFlag=true`, and satisfies the response requirement
+5. **Attachments** — render ONLY when `AttachMode !== 'N'`. `sap.m.upload.UploadSet`
+   bound to the item's `ToAttachments`, CSS class `zcsrAttach` (yellow). Label
+   "Optional Attachments" for `O`, "Required evidence" for `R`
+
+Autosave: on `liveChange` debounce 2 s, then `oModel.submitChanges()` (MERGE batch).
+Flush on route-leave. Show "Draft autosaved hh:mm:ss" in the footer. Set
+`refreshAfterChange=false`; refresh bindings explicitly after function imports.
+
+Submit button label: **"Sign & Submit"** (i18n key `btnSignSubmit`). On business error,
+push the V2 error container details into `sap.ui.core.message.MessageManager`, map each
+failing `QuestionId` to its control (`ValueState.Error` + text), and open the message
+popover. Success: refresh header, lock the form, `MessageToast`.
+
+Review mode additions: read-only form, AI-flag panel expanded (`ToAiFlags`), footer =
+"Complete Review" / "Return to Analyst" (ReturnNotesDialog, notes mandatory client-side
+AND server-enforced).
+
+## 6. Validation semantics (client-side mirror; server is authoritative)
+
+A checklist is submittable when, for every item with `Inptype === 'I'`:
+- `RespRequired` → `Response` non-empty **or** (`NaAllowed` && `NaFlag`)
+- `AttachMode === 'R'` → at least one non-deleted attachment on the item
+`AttachMode === 'O'` never blocks. Client checks exist for UX only — never skip the
+function import, never simulate its result.
+
+## 7. Formatters, styling, UX conventions
+
+- `formatter.statusState`: NS→None, IP→Warning, SB/UR→Information, RT→Error, CP→Success
+- `formatter.severityState`: H→Error, M→Warning, L→Information
+- Theme `sap_horizon`; custom CSS limited to `.zcsrInput` (light green bg/border),
+  `.zcsrAttach` (light yellow), `.zcsrComment` (neutral gray). Do not restyle anything else.
+- Status must always be conveyed by **text + semantic state**, never color alone.
+- Worklist filter bar: cascading LOB → Market Segment ComboBoxes using `MarketSegVHSet`
+  filtered by `Lob`; whole-LOB CSR rows display Segment "All".
+- Tables: `growing="true"` `growingThreshold="25"`; no client-side loading of full sets.
+
+## 8. ABAP reference (when asked for backend snippets)
+
+- Classic ABAP OO. Tables `ZCSR_HEADER`, `ZCSR_ITEM`, `ZCSR_QCATALOG`, `ZCSR_ATTACH`,
+  `ZCSR_REVIEW`, `ZCSR_ASSIGN`, `ZCSR_AIFLAG`, `ZCSR_DEADLINE`.
+- Attachment bytes: XSTRING written **directly** to `ZCSR_ATTACH-CONTENT`
+  (never `EXPORT ... TO DATA BUFFER`); SHA-256 via `CL_ABAP_MESSAGE_DIGEST`;
+  storage access only through interface `ZIF_CSR_ATTACH_STORE` (impl `ZCL_CSR_ATTACH_DB`).
+- Media handling in `CREATE_STREAM` / `GET_STREAM` of the DPC_EXT; `Content-Disposition`
+  with the original filename on download; byte-identical round trip is a hard requirement.
+- Business errors: raise `/IWBEP/CX_MPC_BUSI_EXCEPTION` with a message container so
+  `SubmitChecklist` returns ALL validation failures in one response.
+- Locking via lock object `EZCSR_HEADER`; every state change writes change documents
+  (SCDO object `ZCSR`); status transitions validated against the matrix in `ZCL_CSR_MODEL`.
+- AI calls: `ZCL_CSR_AI_CLIENT`, SM59 destination `ZCSR_LLM`, POST `/v1/chat/completions`,
+  JSON-only response parsed with `/UI2/CL_JSON`. AI failure = zero flags, **never** blocks
+  submission. AI output is advisory; nothing auto-approves.
+
+## 9. Local development & testing
+
+- `ui5 serve` with `localService/mockserver.js` (`sap.ui.core.util.MockServer`) against
+  `metadata.xml`; mock data mirrors the seeded catalog (4 CSR-LOB procedures,
+  3 Quarter-Close-LOB procedures, instruction rows) and the LOB/segment value tables
+  (MIC2, SEMS, SAC, TLS; 13 segments + 'ALL').
+- Mock the function imports explicitly (MockServer does not auto-mock them): attach
+  handlers that mutate mock data status fields per the transition matrix.
+- QUnit for `formatter.js` and validation mirror; OPA5 journeys for: analyst happy path
+  (fill → Sign & Submit), blocked submit (itemized errors), N/A flow, reviewer return flow.
+- Definition of done for any UI task: works against mockserver, no console errors,
+  all strings in i18n, keyboard accessible, and no APIs outside UI5 1.108.
+
+## 10. General conduct
+
+- Prefer editing existing files over creating parallel variants.
+- Small, reviewable diffs; one concern per commit.
+- If a requirement here seems ambiguous or contradicts the metadata, ask — do not guess.
+- Never invent OData properties, UI5 APIs, ABAP classes, or SAP notes. Uncertainty must be
+  stated explicitly, not papered over with plausible-looking code.
