@@ -89,8 +89,9 @@ Entity sets (keys):
 Navigation: Header → `ToItems` / `ToAttachments` / `ToReviews` / `ToAiFlags`;
 Item → `ToAttachments`.
 
-`ChecklistItem` denormalized read-only catalog fields: `Section`, `Seqnr`, `Title`,
-`QuestionText`, `ExampleText`, `Inptype` (`I`|`C`), `RespRequired`,
+`ChecklistItem` denormalized read-only catalog fields: `Section` (`P` Procedures | `I`
+Instructions / Notes — domain `ZCSR_SECTION`), `Seqnr`, `Title`, `QuestionText`,
+`ExampleText`, `Inptype` (`I`|`C`), `RespRequired`,
 `AttachMode` (`N`|`O`|`R`), `NaAllowed`.
 
 Function imports — **the only way state changes** (all POST unless noted):
@@ -120,8 +121,9 @@ AUTHORITY-CHECK is authoritative.
 ## 6. ChecklistDetail — procedure cards (core screen)
 
 One card per `ChecklistItem` with `Inptype === 'I'`, ordered by `Seqnr`, grouped by
-`Section`. `Inptype === 'C'` rows render inside a collapsed **Instructions panel** above
-the first card (auto-expanded on a checklist's first open).
+`Section` (render section headers via `formatter.sectionText`, never the raw code).
+`Inptype === 'C'` rows (these sit in `Section === 'I'`) render inside a collapsed
+**Instructions panel** above the first card (auto-expanded on a checklist's first open).
 
 Card anatomy, top to bottom:
 1. **Title bar** — `"{Seqnr} · {Title}"` + completion indicator (✓ answered / open / N/A)
@@ -159,6 +161,8 @@ import or simulate its result.
 
 - `formatter.statusState`: NS→None, IP→Warning, SB/UR→Information, RT→Error, CP→Success
 - `formatter.severityState`: H→Error, M→Warning, L→Information
+- `formatter.sectionText`: P→i18n `sectionProcedures`, I→i18n `sectionInstructions`
+  (Section is a 1-char domain code, never displayed raw)
 - Theme `sap_horizon`; custom CSS limited to the three `.zcsr*` classes. Restyle nothing else.
 - Status always conveyed by text + semantic state, never color alone.
 - Worklist filter bar: cascading LOB → Market Segment ComboBoxes (`MarketSegVHSet`
@@ -202,3 +206,32 @@ import or simulate its result.
 4. Definition of done: works against mockserver, zero console errors, all strings in i18n,
    keyboard accessible, no APIs outside verified UI5 1.108.
 5. If requirements are ambiguous or conflict with `metadata.xml`, ask — do not guess.
+
+## 12. Companion app: `zcsr.catalog` (catalog maintenance, admin-only)
+
+Second app in the monorepo at `catalog/webapp/` (own ui5.yaml + BSP + tile), same OData
+service. Everything in §§1–2 and 7–11 applies unchanged. Design doc:
+`CSR_Catalog_App_Design.docx`.
+
+- **Purpose**: maintain `QuestionSet` per checklist type across catalog versions —
+  Questions (`Section='P'`, `Inptype='I'`) and Instructions / Notes texts
+  (`Section='I'`, `Inptype='C'`), separated by a two-filter `sap.m.IconTabBar`.
+- **Layout**: `sap.f.FlexibleColumnLayout` — begin column = filters (Chktype Select,
+  Version Select with Draft/Released pill, overflow menu) + tabs + list; mid column =
+  row editor. Routes: `catalog` = `{chktype}/{version}`,
+  `catalogEdit` = `{chktype}/{version}/row/{questionId}`.
+- **Section derivation**: Add on the Questions tab creates `Section='P'`/`Inptype='I'`;
+  on the Instructions tab `Section='I'`/`Inptype='C'`. The user NEVER picks Section or
+  Inptype. `QuestionId` is generated server-side on create — read it from the create
+  response, never invent it client-side.
+- **Editors differ by section**: P = Title + Requirement TextArea (char counter) +
+  Example TextArea + Behavior panel (RespRequired Switch, AttachMode Select N/O/R,
+  NaAllowed Switch). I = Title + Text only; the Behavior panel is absent, not disabled.
+- **Explicit Save** (no autosave) with dirty-guard on navigation and tab switch.
+- **Versioning**: `CatalogVersionSet` (read-only) + function imports
+  `CopyCatalogVersion(SourceVersion)` and `ReleaseCatalogVersion(Version, ValidFrom)`.
+  Rows are writable only while `Editable === true` (Draft + unbound). Released versions
+  render fully read-only with an info strip offering "Copy to New Version". Resequence =
+  swap `Seqnr` with neighbor via two MERGEs, immediate, Draft only.
+- **Live preview** in the editor renders the row as the analyst's procedure card
+  (collapsed 3-line requirement, Example panel) — reuse the main app's formatters.
