@@ -25,11 +25,7 @@ newest first. Agents: read the **Open flags** section before starting any task.
    incomplete Question entity, no CatalogVersion/version FIs). Recommend
    deleting it or renaming to `zcsr_metadata_v0.1_OBSOLETE.xml`. The contract
    is `design/ZCSR_CHECKLIST_SRV_metadata.xml`.
-4. **Duplicate readme in `ABAP/`.**
-   `ABAP/readme.md` (stub) duplicates `ABAP/README.md` (the real activation
-   guide + message class texts). Recommend deleting the stub — on
-   case-insensitive filesystems (Windows checkouts) the pair collides.
-5. **Market Segment templates (CSRM/QCLM) still pending from the client.**
+4. **Market Segment templates (CSRM/QCLM) still pending from the client.**
    Catalog version 0001 covers CSRL + QCLL only. When the segment templates
    arrive they may grow the `ZCSR_SECTION` domain (DDIC transport each) — see
    Tech Spec changelog v0.2 item 7.
@@ -37,6 +33,13 @@ newest first. Agents: read the **Open flags** section before starting any task.
 ---
 
 ## Log
+
+### 2026-10-26 — Repo structure finalized; flag #4 resolved
+- CLAUDE.md architecture: thin router at repo root + per-folder governing
+  prompts (`checklist/`, `catalog/`, `ABAP/`); `ClaudeCode/` holds only the
+  phased build prompts. Frontend build prompt aligned to the layout.
+- RESOLVED (was open flag #4): duplicate `ABAP/readme.md` stub removed
+  (case conflict with `ABAP/README.md` on Windows checkouts).
 
 ### 2026-10-26 — Backend complete; frontend phase begins; agent scaffolding adapted
 - `ZCSR_CHECKLIST_SRV` is live on DEV; all ABAP components activated
