@@ -7,6 +7,14 @@ It shares the OData service of the main CSR Auditing Application but is a separa
 with its own BSP and launchpad tile. This file governs every session in this repository.
 Where it conflicts with your general knowledge, **this file wins**.
 
+> **Placement in the CSR_LMI monorepo:** this app lives in `catalog/`; this file must
+> exist as **`catalog/CLAUDE.md`** for Claude Code to auto-load it (the `ClaudeCode/`
+> copy is the reference master — keep them in sync). §3 paths are relative to
+> `catalog/`. Also read, at the repo root: `AGENT_ONBOARDING.md`,
+> `UI5_AGENT_PLAYBOOK.md`, and the open flags in `NOTES.md`. The backend is live; the
+> contract master is `design/ZCSR_CHECKLIST_SRV_metadata.xml` (copy to
+> `webapp/localService/metadata.xml`; never the stale `design/zcsr_metadata.xml`).
+
 Reference design: `CSR_Catalog_App_Design.docx`. Service contract:
 `webapp/localService/metadata.xml` — **read-only source of truth**; never invent
 properties it lacks. If a task appears to need a contract change, stop and raise it.

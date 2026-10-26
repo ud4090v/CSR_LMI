@@ -5,6 +5,17 @@ Excel/SharePoint quarterly compliance-checklist process, backed by a classic ABA
 service on SAP ECC. This file governs every session in this repository. Where it conflicts
 with your general knowledge, **this file wins**.
 
+> **Placement in the CSR_LMI monorepo:** the main app lives in `checklist/`. Claude Code
+> only auto-loads a file named `CLAUDE.md` at or above its working directory — so this
+> file must exist as **`checklist/CLAUDE.md`** (this `ClaudeCode/` copy is the reference
+> master; keep the two in sync). All §3 paths below are relative to `checklist/`.
+> Before any task also read, at the repo root: `AGENT_ONBOARDING.md`,
+> `UI5_AGENT_PLAYBOOK.md`, and the **open flags in `NOTES.md`**. The build order and
+> per-phase verification gates are in `ClaudeCode/PROMPT-build-frontend.md`.
+> The backend is **live on DEV** — the service contract is frozen at v0.3; its master
+> copy is `design/ZCSR_CHECKLIST_SRV_metadata.xml` (copy it to
+> `webapp/localService/metadata.xml`; never use the stale `design/zcsr_metadata.xml`).
+
 ## Prime directive: never fabricate APIs
 
 Before writing any call against an API you are not 100% certain of — SAPUI5 controls,
@@ -69,13 +80,13 @@ webapp/
   localService/metadata.xml       # ZCSR_CHECKLIST_SRV contract — READ-ONLY SOURCE OF TRUTH
   localService/mockserver.js
   localService/mockdata/*.json
-abap/                      # reference ABAP sources (SE80-managed; review copies only)
+../ABAP/                   # repo root: reference ABAP sources (SE80 is master; review copies)
 ```
 
 App ID `zcsr.checklist`; namespace every module `zcsr/checklist/...`.
 Generate all bindings from `localService/metadata.xml`; never add properties it lacks.
-If a task appears to need a contract change, stop and raise it — the metadata is versioned
-with the backend and does not change casually.
+If a task appears to need a contract change, stop and raise it — the backend is live and
+the metadata is versioned with it; it does not change casually.
 
 ## 4. Data contract (OData V2, `ZCSR_CHECKLIST_SRV`)
 
@@ -124,6 +135,9 @@ One card per `ChecklistItem` with `Inptype === 'I'`, ordered by `Seqnr`, grouped
 `Section` (render section headers via `formatter.sectionText`, never the raw code).
 `Inptype === 'C'` rows (these sit in `Section === 'I'`) render inside a collapsed
 **Instructions panel** above the first card (auto-expanded on a checklist's first open).
+⚠️ Open flag (`NOTES.md` #1): confirm on the first live-service call whether `ToItems`
+actually returns the `C` rows; if it does not, STOP and raise it (fallback design:
+read `QuestionSet` for the header's `CatalogVers`) — do not improvise client-side.
 
 Card anatomy, top to bottom:
 1. **Title bar** — `"{Seqnr} · {Title}"` + completion indicator (✓ answered / open / N/A)
@@ -169,7 +183,7 @@ import or simulate its result.
   filtered by `Lob`); whole-LOB CSR rows show Segment "All".
 - Tables: `growing="true"` `growingThreshold="25"`; never load full sets client-side.
 
-## 9. ABAP reference (for backend snippets in `abap/`)
+## 9. ABAP reference (backend is LIVE; review sources in repo-root `ABAP/`)
 
 - Classic ABAP OO. Tables: `ZCSR_HEADER`, `ZCSR_ITEM`, `ZCSR_QCATALOG`, `ZCSR_ATTACH`,
   `ZCSR_REVIEW`, `ZCSR_ASSIGN`, `ZCSR_AIFLAG`, `ZCSR_DEADLINE`.
