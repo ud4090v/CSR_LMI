@@ -34,6 +34,16 @@ newest first. Agents: read the **Open flags** section before starting any task.
 
 ## Log
 
+### 2026-10-26 — Mockup track added ahead of the full build
+- Client asked for a quick demo mockup for acceptance BEFORE the full frontend
+  build. New track: `ClaudeCode/PROMPT-mockup-demo.md` (phases M1-M4) governed
+  by `mockup/CLAUDE.md`. Key rules: throwaway vanilla HTML/CSS/JS (NOT UI5,
+  never upgraded into the product), Horizon fidelity ceiling (nothing the real
+  1.108 app can't render), real procedure/LOB content verbatim from the
+  design/ seed workbooks, confidential (no public hosting), presenter rail +
+  DEMO_SCRIPT.md for the meeting. After acceptance: tag, freeze, log outcome
+  here, proceed with PROMPT-build-frontend.md.
+
 ### 2026-10-26 — Repo structure finalized; flag #4 resolved
 - CLAUDE.md architecture: thin router at repo root + per-folder governing
   prompts (`checklist/`, `catalog/`, `ABAP/`); `ClaudeCode/` holds only the

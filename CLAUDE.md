@@ -19,12 +19,14 @@ This root file is a router only. **Before any task, read at the repo root:**
 | `checklist/` — main app `zcsr.checklist` | `checklist/CLAUDE.md` |
 | `catalog/` — companion app `zcsr.catalog` | `catalog/CLAUDE.md` |
 | `ABAP/` — backend (live; maintenance mode) | `ABAP/CLAUDE.md` |
+| `mockup/` — client-demo mockup (throwaway, NOT UI5) | `mockup/CLAUDE.md` |
 
 Open your Claude Code session with the app folder as the working directory so the
 folder's `CLAUDE.md` loads automatically; if you are working from the repo root, read
 the governing prompt for your assignment before touching its files.
 
 Frontend build order and per-phase verification gates: `ClaudeCode/PROMPT-build-frontend.md`.
+Client-demo mockup track (runs BEFORE the full build): `ClaudeCode/PROMPT-mockup-demo.md`.
 
 ## Non-negotiables that apply repo-wide
 
