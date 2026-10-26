@@ -66,8 +66,8 @@ FULL INSTRUCTIONS (give this to the agent)
 
 1. Read, in order: AGENT_INSTRUCTIONS.txt (this file), AGENT_ONBOARDING.md,
    UI5_AGENT_PLAYBOOK.md, NOTES.md, and the governing prompt for your
-   assignment (ClaudeCode/claude.md for the main app, ClaudeCode/CLAUDE-catalog.md
-   for the companion catalog app, ClaudeCode/claude_abap.md for backend work).
+   assignment (checklist/CLAUDE.md for the main app, catalog/CLAUDE.md
+   for the companion catalog app, ABAP/CLAUDE.md for backend work).
 
 2. Documentation (living docs):
    All docs are living. As part of every task, update whichever doc(s) your
@@ -90,8 +90,8 @@ AGENT_INSTRUCTIONS.txt            This file — instructions only
 AGENT_ONBOARDING.md               Project context, guardrails, status, checklist
 UI5_AGENT_PLAYBOOK.md             Frontend patterns (OData V2, UI5 1.108)
 NOTES.md                          Running decision/bug log
-ClaudeCode/claude.md              Governing prompt — main app zcsr.checklist
-ClaudeCode/CLAUDE-catalog.md      Governing prompt — companion app zcsr.catalog
-ClaudeCode/claude_abap.md         Governing prompt — ABAP backend (complete)
+checklist/CLAUDE.md              Governing prompt — main app zcsr.checklist
+catalog/CLAUDE.md      Governing prompt — companion app zcsr.catalog
+ABAP/CLAUDE.md         Governing prompt — ABAP backend (complete)
 ClaudeCode/PROMPT-build-frontend.md   Phased build prompts for the frontend
 design/                           Authoritative specs + the OData contract

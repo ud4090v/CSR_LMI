@@ -5,10 +5,10 @@ Excel/SharePoint quarterly compliance-checklist process, backed by a classic ABA
 service on SAP ECC. This file governs every session in this repository. Where it conflicts
 with your general knowledge, **this file wins**.
 
-> **Placement in the CSR_LMI monorepo:** the main app lives in `checklist/`. Claude Code
-> only auto-loads a file named `CLAUDE.md` at or above its working directory — so this
-> file must exist as **`checklist/CLAUDE.md`** (this `ClaudeCode/` copy is the reference
-> master; keep the two in sync). All §3 paths below are relative to `checklist/`.
+> **Placement in the CSR_LMI monorepo:** this file is `checklist/CLAUDE.md` — the single
+> copy of the main-app governing prompt; Claude Code auto-loads it (together with the
+> root router `CLAUDE.md`) for any session working in `checklist/`. All §3 paths below
+> are relative to `checklist/`.
 > Before any task also read, at the repo root: `AGENT_ONBOARDING.md`,
 > `UI5_AGENT_PLAYBOOK.md`, and the **open flags in `NOTES.md`**. The build order and
 > per-phase verification gates are in `ClaudeCode/PROMPT-build-frontend.md`.

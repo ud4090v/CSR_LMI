@@ -96,7 +96,7 @@ One `ChecklistDetail` view serves edit and review: `{app>/mode}` drives `editabl
 
 ## 4. CSR-Specific UI Patterns
 
-### 4.1 Procedure cards (the core screen — full contract in ClaudeCode/claude.md §6)
+### 4.1 Procedure cards (the core screen — full contract in checklist/CLAUDE.md §6)
 One card per item with `Inptype === 'I'`, ordered `Seqnr`, grouped by `Section` (headers via `formatter.sectionText` — never the raw P/I code). Anatomy: title bar `"{Seqnr} · {Title}"` + completion indicator → requirement `sap.m.Text maxLines="3"` + "Show more" (QuestionText is 600–1,600 chars; never fully expanded by default) → collapsed Example panel only when `ExampleText` non-empty → growing TextArea (`.zcsrInput`) with N/A `Switch` rendered **only when `NaAllowed`** (on = field disabled, `NaFlag=true`, requirement satisfied) → `UploadSet` (`.zcsrAttach`) only when `AttachMode !== 'N'`, labeled "Optional Attachments" (O) / "Required evidence" (R).
 
 ### 4.2 Instructions panel
@@ -121,7 +121,7 @@ Standalone `ui5 serve` has no FLP; production runs inside the launchpad. Guard e
 Initialize the `app` JSON model with defaults before first data; clear busy from `metadataLoaded()`/`attachMetadataFailed` and request handlers — on V2 these APIs exist and are the right ones (the CDC playbook's warning against them applies to V4 only).
 
 ### 4.7 Catalog app specifics (zcsr.catalog)
-FlexibleColumnLayout; `Section`/`Inptype` derived from the active IconTabBar tab on create — never rendered as inputs; `QuestionId` read from the create response, never constructed client-side; writes only where `Editable === true`; explicit Save + dirty-guard (no autosave); reorder = two immediate Seqnr MERGEs. Full contract: `ClaudeCode/CLAUDE-catalog.md`.
+FlexibleColumnLayout; `Section`/`Inptype` derived from the active IconTabBar tab on create — never rendered as inputs; `QuestionId` read from the create response, never constructed client-side; writes only where `Editable === true`; explicit Save + dirty-guard (no autosave); reorder = two immediate Seqnr MERGEs. Full contract: `catalog/CLAUDE.md`.
 
 ## 5. Troubleshooting (V2 / CSR)
 

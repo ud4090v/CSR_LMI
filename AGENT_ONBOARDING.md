@@ -35,7 +35,7 @@ The CSR Auditing Application replaces an Excel/SharePoint quarterly compliance-c
 | `design/CSR_Catalog_App_Design.docx` (v0.1) | Companion catalog app UX + versioning rules |
 | `ABAP/CSR_ABAP_Development_Specification.docx` (v0.1) | Backend component contracts (code in `ABAP/`) |
 | `design/ZCSR_CHECKLIST_SRV_metadata.xml` | **The OData contract — read-only source of truth** |
-| `ClaudeCode/claude.md` / `CLAUDE-catalog.md` / `claude_abap.md` | Per-assignment governing prompts |
+| `checklist/CLAUDE.md` / `catalog/CLAUDE.md` / `ABAP/CLAUDE.md` | Per-assignment governing prompts |
 | `ClaudeCode/PROMPT-build-frontend.md` | Phased frontend build prompts + verification gates |
 
 ⚠️ `design/zcsr_metadata.xml` (lowercase) is a **stale v0.1 snapshot** (Section still CHAR 40, Question entity incomplete, no CatalogVersion). Never bind against it. The contract is `ZCSR_CHECKLIST_SRV_metadata.xml`.
@@ -43,7 +43,7 @@ The CSR Auditing Application replaces an Excel/SharePoint quarterly compliance-c
 ### Delivery phases (know which one you're in)
 - **Backend (COMPLETE, 2026-10):** DDIC + `ZCL_CSR_*` classes + `ZCL_ZCSR_CHECKLIST_DPC_EXT`; service `ZCSR_CHECKLIST_SRV` is live on DEV. Reference sources in `ABAP/` (SE80 is master).
 - **Frontend main app (CURRENT):** `zcsr.checklist` — Phases 0–7 per `ClaudeCode/PROMPT-build-frontend.md` (shell → Worklist → procedure cards/autosave → Sign & Submit → review → admin → tests → live smoke test).
-- **Companion catalog app:** `zcsr.catalog` per `CLAUDE-catalog.md`, after main-app Phase 7.
+- **Companion catalog app:** `zcsr.catalog` per `catalog/CLAUDE.md`, after main-app Phase 7.
 - **Hardening:** jobs in production schedule, evidence-export verification, catalog release workflow end-to-end on QA.
 
 ---
@@ -67,22 +67,24 @@ The CSR Auditing Application replaces an Excel/SharePoint quarterly compliance-c
 
 ```
 CSR_LMI/
+├── CLAUDE.md                   # thin ROUTER — auto-loads everywhere; points to the
+│                               #   governing prompt per workstream
 ├── ABAP/                       # reference ABAP sources + ABAP dev spec (SE80 is master)
-├── ClaudeCode/                 # governing prompts (claude.md, CLAUDE-catalog.md,
-│                               #   claude_abap.md) + PROMPT-build-frontend.md
+│   └── CLAUDE.md               # backend governing prompt (auto-loads for ABAP work)
+├── ClaudeCode/                 # PROMPT-build-frontend.md (phased build prompts — pasted,
+│                               #   not auto-loaded)
 ├── copilot/                    # Copilot variant of the instructions
 ├── design/                     # authoritative specs, OData contract, catalog +
 │                               #   value-table seed workbooks
-├── checklist/                  # (to create, Phase 0) main app zcsr.checklist
-│   ├── ui5.yaml / package.json
-│   └── webapp/                 # layout per ClaudeCode/claude.md §3
-├── catalog/                    # (to create, later) companion app zcsr.catalog
-│   └── webapp/                 # layout per ClaudeCode/CLAUDE-catalog.md §3
+├── checklist/                  # main app zcsr.checklist (webapp/ lands in Phase 0)
+│   └── CLAUDE.md               # main-app governing prompt (auto-loads here)
+├── catalog/                    # companion app zcsr.catalog (webapp/ lands later)
+│   └── CLAUDE.md               # catalog governing prompt (auto-loads here)
 ├── AGENT_INSTRUCTIONS.txt · AGENT_ONBOARDING.md · UI5_AGENT_PLAYBOOK.md · NOTES.md
 └── LOB CSR and Qtr Close Chklsts - 2021-3Q - Final-6.xlsm   # client source template
 ```
 
-Paths inside `ClaudeCode/claude.md` (`webapp/...`) are **relative to the app folder** (`checklist/`); same for the catalog prompt and `catalog/`. Frontend agents work in the app folders; backend work happens on-system (reference copies in `ABAP/` kept in sync — flag on-system actions in your summary).
+Paths inside `checklist/CLAUDE.md` (`webapp/...`) are **relative to the app folder** (`checklist/`); same for the catalog prompt and `catalog/`. Frontend agents work in the app folders; backend work happens on-system (reference copies in `ABAP/` kept in sync — flag on-system actions in your summary).
 
 ### Current Implementation Status (2026-10-26)
 
@@ -92,9 +94,9 @@ Paths inside `ClaudeCode/claude.md` (`webapp/...`) are **relative to the app fol
 
 ## 5. Roles per Agent Assignment
 
-**Frontend agent (main app):** governed by `ClaudeCode/claude.md`; build order and acceptance gates in `ClaudeCode/PROMPT-build-frontend.md`. Consumes the V2 service as-is; if the service lacks something, file a backend request in your summary — you do not work around it client-side and you do not touch the metadata.
-**Catalog-app agent:** governed by `ClaudeCode/CLAUDE-catalog.md`; starts after main-app Phase 7.
-**Backend agent:** governed by `ClaudeCode/claude_abap.md`. The service contract (entities, properties, function-import signatures) does not change without an approved spec revision from the architect.
+**Frontend agent (main app):** governed by `checklist/CLAUDE.md`; build order and acceptance gates in `ClaudeCode/PROMPT-build-frontend.md`. Consumes the V2 service as-is; if the service lacks something, file a backend request in your summary — you do not work around it client-side and you do not touch the metadata.
+**Catalog-app agent:** governed by `catalog/CLAUDE.md`; starts after main-app Phase 7.
+**Backend agent:** governed by `ABAP/CLAUDE.md`. The service contract (entities, properties, function-import signatures) does not change without an approved spec revision from the architect.
 **Either:** update the docs you affect; keep the console/lint clean; ask when the spec is ambiguous, decide-and-log in `NOTES.md` when it's merely silent on a detail.
 
 ---

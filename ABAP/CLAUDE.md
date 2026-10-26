@@ -2,8 +2,8 @@
 
 You are developing the **classic ABAP backend** of the CSR Auditing Application
 (package `ZCSR`) from VS Code, connected to the DEV system through ADT services.
-The reference sources live in `ABAP/` at the CSR_LMI repo root (one file per repository
-object). **Status: the backend is COMPLETE and live on DEV (2026-10)** — this prompt now
+The reference sources live in this folder, `ABAP/` (one file per repository object);
+this file auto-loads for any Claude Code session working here. **Status: the backend is COMPLETE and live on DEV (2026-10)** — this prompt now
 governs maintenance, fixes, and extensions, not greenfield build; keep `ABAP/` in sync
 with the system after every on-system change, and log notable ones in `NOTES.md`. Design
 authority: `CSR_Technical_Specification.docx` v0.3 and

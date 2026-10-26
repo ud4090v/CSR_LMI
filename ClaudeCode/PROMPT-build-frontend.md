@@ -1,8 +1,9 @@
 # Claude Code Build Prompts — CSR Auditing Application Frontend (VS Code)
 
-How to use: put `CLAUDE.md` at the repo root, open the folder in VS Code, start
-Claude Code (`claude` in the integrated terminal). `CLAUDE.md` loads
-automatically and governs every session — these prompts only tell it **what to
+How to use: the governing prompt already sits at `checklist/CLAUDE.md` (plus the thin
+router at the repo root). Open the repo in VS Code and start Claude Code (`claude`)
+with `checklist/` as the working directory — both files load automatically and govern
+every session — these prompts only tell it **what to
 build next**; the rules live in CLAUDE.md. Paste one phase at a time, review
 the result, commit, then move on. Each phase ends with its own verification
 gate, so never accept "done" without it.
@@ -171,7 +172,7 @@ real error container shape from SubmitChecklist. metadata.xml stays read-only
 
 ## Companion app kickoff (separate repo/folder, after Phase 7)
 
-Place `CLAUDE-catalog.md` as that folder's `CLAUDE.md`, then:
+Place `catalog/CLAUDE.md` as that folder's `CLAUDE.md`, then:
 
 ```
 Set up zcsr.catalog per CLAUDE.md §2–§3 (own ui5.yaml, FlexibleColumnLayout
