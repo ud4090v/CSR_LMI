@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSR Auditing Application</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell" id="app">
+    <!-- Shell Header -->
+    <header class="shell-header">
+      <div class="flex items-center gap-sm" style="gap: 1.5rem;">
+        <span class="shell-header__title">CSR Auditing</span>
+        <nav class="shell-header__nav">
+          <button class="shell-header__nav-btn active" data-nav="worklist">Worklist</button>
+          <button class="shell-header__nav-btn" data-nav="review-queue">Review Queue</button>
+          <button class="shell-header__nav-btn" data-nav="admin">Admin</button>
+          <button class="shell-header__nav-btn" data-nav="catalog">Catalog</button>
+        </nav>
+      </div>
+      <div class="shell-header__context">
+        <span>2026 / Q3</span>
+        <div class="user-chip">
+          <div class="user-chip__avatar">JD</div>
+          <span>Jane Doe</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="shell-content">
+      <!-- WORKLIST SCREEN -->
+      <div class="screen active" id="screen-worklist">
+        <div class="screen-header">
+          <div class="screen-header__left">
+            <h1 class="screen-header__title">Quarterly Checklists</h1>
+            <p class="screen-header__subtitle">2026 / Q3 &mdash; LOB CSR &amp; Quarter Close</p>
+          </div>
+        </div>
+        <div class="kpi-strip" id="kpi-strip"></div>
+        <div class="filter-row" id="filter-row"></div>
+        <div class="data-table" id="worklist-table"></div>
+      </div>
+
+      <!-- CHECKLIST DETAIL SCREEN -->
+      <div class="screen" id="screen-detail">
+        <div class="breadcrumb">
+          <a data-nav="worklist">Worklist</a>
+          <span class="breadcrumb__sep">/</span>
+          <span id="detail-breadcrumb-label">Checklist</span>
+        </div>
+        <div id="detail-return-banner"></div>
+        <div id="detail-signed-banner"></div>
+        <div class="detail-header" id="detail-header"></div>
+        <div id="detail-error-panel"></div>
+        <div id="detail-notes-panel"></div>
+        <div id="detail-cards"></div>
+        <div id="detail-footer" class="flex justify-between items-center mt-lg" style="padding: 1rem 0;"></div>
+      </div>
+
+      <!-- REVIEW QUEUE SCREEN -->
+      <div class="screen" id="screen-review-queue">
+        <div class="screen-header">
+          <div class="screen-header__left">
+            <h1 class="screen-header__title">Review Queue</h1>
+            <p class="screen-header__subtitle">Submitted checklists awaiting review</p>
+          </div>
+        </div>
+        <div class="data-table review-queue-table" id="review-queue-table"></div>
+      </div>
+
+      <!-- REVIEW DETAIL SCREEN -->
+      <div class="screen" id="screen-review-detail">
+        <div class="breadcrumb">
+          <a data-nav="review-queue">Review Queue</a>
+          <span class="breadcrumb__sep">/</span>
+          <span id="review-breadcrumb-label">Review</span>
+        </div>
+        <div id="review-header" class="detail-header"></div>
+        <div id="review-ai-panel"></div>
+        <div id="review-cards"></div>
+        <div id="review-footer" class="flex justify-between items-center mt-lg" style="padding: 1rem 0;"></div>
+      </div>
+
+      <!-- ADMIN SCREEN -->
+      <div class="screen" id="screen-admin">
+        <div class="screen-header">
+          <div class="screen-header__left">
+            <h1 class="screen-header__title">Administration</h1>
+            <p class="screen-header__subtitle">Period overview &amp; checklist management</p>
+          </div>
+        </div>
+        <h2 style="font-size: var(--font-size-lg); margin-bottom: var(--space-md);">Period Status Matrix &mdash; 2026/Q3</h2>
+        <div class="admin-matrix" id="admin-matrix"></div>
+        <h2 style="font-size: var(--font-size-lg); margin-bottom: var(--space-md);">Actions</h2>
+        <div class="admin-actions" id="admin-actions"></div>
+        <h2 style="font-size: var(--font-size-lg); margin-bottom: var(--space-md);">Reassign Checklist</h2>
+        <div class="data-table" id="admin-reassign-table"></div>
+      </div>
+
+      <!-- CATALOG SCREEN -->
+      <div class="screen" id="screen-catalog">
+        <div class="screen-header">
+          <div class="screen-header__left">
+            <h1 class="screen-header__title">Question Catalog</h1>
+            <p class="screen-header__subtitle">Manage checklist question versions</p>
+          </div>
+        </div>
+        <div class="catalog-list" id="catalog-list"></div>
+      </div>
+    </main>
+
+    <!-- Shell Footer -->
+    <footer class="shell-footer">
+      <span class="autosave-pulse" id="autosave-pulse">Draft autosaved <span id="autosave-time"></span></span>
+      <span>Interactive design mockup &mdash; illustrative data</span>
+      <span id="footer-right"></span>
+    </footer>
+  </div>
+
+  <!-- Corner Menu -->
+  <div class="corner-menu" id="corner-menu">
+    <button class="corner-menu__btn" id="corner-menu-btn">&#9776; Menu</button>
+    <div class="corner-menu__dropdown" id="corner-menu-dropdown">
+      <button class="corner-menu__item" id="btn-reset-demo">Reset demo</button>
+      <button class="corner-menu__item" id="btn-toggle-presenter">Toggle presenter mode (P)</button>
+    </div>
+  </div>
+
+  <!-- Presenter Rail -->
+  <div class="presenter-rail" id="presenter-rail">
+    <div class="presenter-rail__controls">
+      <button class="presenter-rail__btn" id="presenter-prev" title="Previous (Left arrow)">&larr;</button>
+    </div>
+    <div class="presenter-rail__caption" id="presenter-caption">Welcome</div>
+    <div class="presenter-rail__controls">
+      <span class="presenter-rail__step" id="presenter-step">0/0</span>
+      <button class="presenter-rail__btn" id="presenter-next" title="Next (Right arrow)">&rarr;</button>
+    </div>
+  </div>
+
+  <!-- Modal Overlay -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal" id="modal"></div>
+  </div>
+
+  <!-- Signing Overlay -->
+  <div class="signing-overlay" id="signing-overlay">
+    <div class="signing-spinner"></div>
+    <div class="signing-text">Signing &amp; submitting&hellip;</div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
