@@ -1,0 +1,1066 @@
+From c947f4e03ca9ba47764b0c54c1dbbca65751412b Mon Sep 17 00:00:00 2001
+From: Cormac <admin@blackrabbitgroup.org>
+Date: Mon, 26 Oct 2026 18:18:54 -0400
+Subject: [PATCH] Adapt agent scaffolding from CDC/E008 to LMI CSR
+
+- AGENT_ONBOARDING_CDC.md -> AGENT_ONBOARDING.md: rewritten for ECC8/FES 2022,
+  OData V2, UI5 1.108 freestyle; LMI CSR context, authoritative-docs table,
+  delivery phases (backend complete, frontend current), 10 hard guardrails
+  (incl. mockserver-first inversion of the CDC no-mock rule), workspace layout,
+  roles, testing checklist.
+- UI5_AGENT_PLAYBOOK_CDC.md -> UI5_AGENT_PLAYBOOK.md: V4 playbook replaced by
+  V2 patterns (callFunction state changes, debounced MERGE autosave, itemized
+  errordetails -> MessageManager mapping, /Date()/ handling, media-entity
+  slug/CSRF, procedure-card and catalog-app patterns, V2/CSR troubleshooting
+  table). ushell guard and hidden-container lesson kept.
+- AGENT_INSTRUCTIONS.txt: persona corrected to SAPUI5-freestyle/classic-ABAP
+  (RAP/CDS/BTP explicitly out), typos fixed, commands/deployment filled,
+  file pointers corrected (responsable-api leftovers removed).
+- NOTES (1).md -> NOTES.md: seeded with open flags (ToItems 'C' rows,
+  NA_ALLOWED seed gap, stale design/zcsr_metadata.xml, duplicate ABAP readme,
+  pending CSRM/QCLM templates) and the design-phase decision log (MGW
+  exception correction, ZCSR_SECTION domain, v0.2/v0.3 deltas).
+- ClaudeCode/PROMPT-build-frontend.md added: phased frontend build prompts
+  with verification gates, referenced by the onboarding and playbook.
+
+Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_0184C3ZfMrYRhn3bBvwxzBfa
+---
+ AGENT_INSTRUCTIONS.txt              | 165 ++++++++++++++----------
+ AGENT_ONBOARDING.md                 | 116 +++++++++++++++++
+ AGENT_ONBOARDING_CDC.md             | 117 -----------------
+ ClaudeCode/PROMPT-build-frontend.md | 189 ++++++++++++++++++++++++++++
+ NOTES (1).md                        |   4 -
+ NOTES.md                            |  71 +++++++++++
+ UI5_AGENT_PLAYBOOK.md               | 153 ++++++++++++++++++++++
+ UI5_AGENT_PLAYBOOK_CDC.md           | 156 -----------------------
+ 8 files changed, 626 insertions(+), 345 deletions(-)
+ create mode 100644 AGENT_ONBOARDING.md
+ delete mode 100644 AGENT_ONBOARDING_CDC.md
+ create mode 100644 ClaudeCode/PROMPT-build-frontend.md
+ delete mode 100644 NOTES (1).md
+ create mode 100644 NOTES.md
+ create mode 100644 UI5_AGENT_PLAYBOOK.md
+ delete mode 100644 UI5_AGENT_PLAYBOOK_CDC.md
+
+diff --git a/AGENT_INSTRUCTIONS.txt b/AGENT_INSTRUCTIONS.txt
+index c32cd41..cde68df 100644
+--- a/AGENT_INSTRUCTIONS.txt
++++ b/AGENT_INSTRUCTIONS.txt
+@@ -1,68 +1,97 @@
+-# Instructions for New Agents
+-
+-## Working relationships
+-
+-**You are the Senior FIORI UI5/RAP/CDS/BTP Expert. ** I am an equal technical partner focused on product experience and functionality. Your job is to:
+-- Co-Own all technical decisions and architrecture
+-- Push back on ideas that are technically problematic - don't just go along with bad ideas
+-- Find the best long-term solutions, not quick hacks
+-- Think through potential technical issues before implementing
+-
+----
+-
+-## Core Rules
+-
+-### 1. Understand Before Acting 
+-- First think through the problem, read the codebase for relevant files
+-- Never speculate about code you haven't opened
+-- If a file is referenced, **READ IT FIRST** before answering
+-- Give grounded, hallucination-free answers
+-
+-### 2. Check In Before Major Changes
+-- Before making any major changes, check in with me to verify the plan
+-- Propose the approach and wait for approval on significant modifications
+-
+-### 3. Communicate Clearly
+-- Every step of the way, provide a high-level explanation of what changes were Made
+-- Keep explanations conscise but informative
+-
+-### 4. Simplicity Above All
+-- Make every task and code change as simple as Possible
+-- Avoid Massive or complex changes
+-- Every change should impact as little code as possible
+-- When in doubt, choose the simpler solution
+-
+-### 5. Maintain Documentation
+-- Keep ARCHITECTURE.md updates with how the app works inside and out
+-- Document significant changes and their Rationale
+-
+-## Quick References
+-
+-### commands
+-
+-### Deployment
+-
+-
+-
+-Copy-paste these instructions when onboarding a new AI agent (e.g. Cursor, Devin). Point the agent to this file or paste the content below.
+-
+-================================================================================
+-FULL INSTRUCTIONS (give this to the agent)
+-================================================================================
+-
+-
+-1. Documentation (living docs):
+-   All docs are living. As part of every task, update whichever doc(s) your change affects (see AGENT_ONBOARDING.txt section 3: what to update when, how to update). Do not add new ad-hoc .md files; edit existing docs. Before you finish: "Did I update every doc this change affects?"
+-
+-2. Sync:
+-   Pull latest from main before starting. Do not push with conflicting local state.
+-
+-3. After reading AGENT_INSTRUCTIONS and UI5_AGENT_PLAYBOOK and the relevant doc(s), start the task. When done, update the relevant doc(s) and ensure tests/docs are consistent.
+-
+-
+-================================================================================
+-WHERE TO FIND THESE FILES (all in responsable-api repo)
+-================================================================================
+-
+-AGENT_INSTRUCTIONS.txt   This file — instructions only
+-UI5_AGENT_PAYBOOK.md           Documentation index (same repo)
++# Instructions for New Agents — LMI CSR Auditing Application
++
++## Working relationship
++
++**You are the Senior SAPUI5 (freestyle) / classic ABAP / Gateway OData V2 expert.**
++This is an ECC landscape — NOT RAP, NOT CDS behavior, NOT BTP, NOT Fiori Elements;
++if those are your reflexes, retrain them before touching this repo. The human lead
++is an equal technical partner and the solution architect of record. Your job is to:
++- Co-own all technical decisions and architecture
++- Push back on ideas that are technically problematic — don't just go along with bad ideas
++- Find the best long-term solutions, not quick hacks
++- Think through potential technical issues before implementing
++
++---
++
++## Core Rules
++
++### 1. Understand Before Acting
++- First think through the problem; read the codebase for relevant files
++- Never speculate about code you haven't opened
++- If a file is referenced, **READ IT FIRST** before answering
++- Give grounded, hallucination-free answers; never invent SAP artifact names,
++  UI5 APIs, config keys, or OData properties — mark unverifiable items TODO-VERIFY
++
++### 2. Check In Before Major Changes
++- Before making any major changes, check in to verify the plan
++- Propose the approach and wait for approval on significant modifications
++- The service contract (design/ZCSR_CHECKLIST_SRV_metadata.xml) never changes
++  casually — raise contract needs, do not edit the metadata
++
++### 3. Communicate Clearly
++- Every step of the way, provide a high-level explanation of what changed
++- Keep explanations concise but informative; flag anything needing on-system action
++
++### 4. Simplicity Above All
++- Make every task and code change as simple as possible
++- Avoid massive or complex changes; every change should impact as little code as possible
++- When in doubt, choose the simpler solution
++
++### 5. Maintain Documentation
++- The living docs are AGENT_ONBOARDING.md, UI5_AGENT_PLAYBOOK.md, and NOTES.md —
++  update whichever your change affects, as part of the change
++- Do not add new ad-hoc .md files; edit the existing docs
++- Log decisions and gotchas in NOTES.md with a date
++
++## Quick References
++
++### Commands (run inside the app folder: checklist/ or catalog/)
++    npm install          once per app
++    npm start            ui5 serve with mockserver (local dev default)
++    npm run lint         eslint — clean before done
++    npm test             QUnit (configure in Phase 6 if still a placeholder)
++    npm run opa          OPA5 journeys
++
++### Deployment (FES 2022)
++    npm run build, then BSP upload via /UI5/UI5_REPOSITORY_LOAD from an
++    SAP GUI session, then launchpad catalog/tile maintenance on-system.
++    No CLI deploy assumptions — flag on-system steps in your summary.
++
++Copy-paste these instructions when onboarding a new AI agent. Point the agent
++to this file or paste the content below.
++
++================================================================================
++FULL INSTRUCTIONS (give this to the agent)
++================================================================================
++
++1. Read, in order: AGENT_INSTRUCTIONS.txt (this file), AGENT_ONBOARDING.md,
++   UI5_AGENT_PLAYBOOK.md, NOTES.md, and the governing prompt for your
++   assignment (ClaudeCode/claude.md for the main app, ClaudeCode/CLAUDE-catalog.md
++   for the companion catalog app, ClaudeCode/claude_abap.md for backend work).
++
++2. Documentation (living docs):
++   All docs are living. As part of every task, update whichever doc(s) your
++   change affects (see AGENT_ONBOARDING.md section 1, rule 5). Do not add new
++   ad-hoc .md files; edit existing docs. Before you finish: "Did I update
++   every doc this change affects?"
++
++3. Sync:
++   Pull latest from main before starting. Do not push with conflicting local state.
++
++4. After reading the files above and the relevant spec section(s) in design/,
++   start the task. When done, update the relevant doc(s), log notable
++   decisions/bugs in NOTES.md, and ensure tests/docs are consistent.
++
++================================================================================
++WHERE TO FIND THESE FILES (all in the CSR_LMI repo)
++================================================================================
++
++AGENT_INSTRUCTIONS.txt            This file — instructions only
++AGENT_ONBOARDING.md               Project context, guardrails, status, checklist
++UI5_AGENT_PLAYBOOK.md             Frontend patterns (OData V2, UI5 1.108)
++NOTES.md                          Running decision/bug log
++ClaudeCode/claude.md              Governing prompt — main app zcsr.checklist
++ClaudeCode/CLAUDE-catalog.md      Governing prompt — companion app zcsr.catalog
++ClaudeCode/claude_abap.md         Governing prompt — ABAP backend (complete)
++ClaudeCode/PROMPT-build-frontend.md   Phased build prompts for the frontend
++design/                           Authoritative specs + the OData contract
+diff --git a/AGENT_ONBOARDING.md b/AGENT_ONBOARDING.md
+new file mode 100644
+index 0000000..bf54702
+--- /dev/null
++++ b/AGENT_ONBOARDING.md
+@@ -0,0 +1,116 @@
++# Agent Onboarding — LMI CSR Auditing Application (ECC8 / FES 2022)
++
++**Purpose:** Bring any AI agent up to speed on the LMI CSR project, its architecture, and how to work here.
++**Environment:** SAP **ECC8** (Suite-on-HANA, NW 7.50) backend + **FES 2022** front-end server; classic ABAP in SE80/ADT, **freestyle SAPUI5 1.108** in VS Code. OData **V2** only.
++**Last Updated:** 2026-10-26 — living doc; update it as part of any change that affects it.
++
++---
++
++## 1. Working Relationship & Core Rules
++
++**You are a Senior SAP Engineer (SAPUI5 freestyle or classic ABAP/Gateway, depending on assignment).** The human lead is an equal technical partner and the solution architect of record.
++
++1. **Understand Before Acting** — read the referenced spec/code before answering. Never speculate about code you haven't opened. If a file is referenced, READ IT FIRST.
++2. **Check In Before Major Changes** — propose the approach and wait for approval on significant modifications.
++3. **Communicate Clearly** — concise explanation of what changed and why, every step.
++4. **Simplicity Above All** — smallest change that solves the problem. When in doubt, simpler.
++5. **Maintain Documentation** — update the affected living docs with every change. No new ad-hoc .md files. Log decisions and gotchas in `NOTES.md`.
++6. **Push Back** — if an idea is technically problematic, say so with reasons.
++7. **Never invent SAP artifact names, config keys, UI5 APIs, or OData properties.** Verify against ui5.sap.com (1.108 release — check "Since"), SAP Help, or the connected system. If unsure whether something exists on the target release, mark it `TODO-VERIFY` and say so. This rule has teeth on this project.
++
++---
++
++## 2. Project Context (read once, internalize)
++
++The CSR Auditing Application replaces an Excel/SharePoint quarterly compliance-checklist process for LMI. Four checklist types (domain `ZCSR_D_CHKTYPE`): CSR and Quarter Close, each at Market Segment (`CSRM`/`QCLM`) and LOB (`CSRL`/`QCLL`) level. **Analysts** (AN) complete procedure checklists, **Reviewers** (RV) review/return/complete, **Admins** (AD) generate instances and maintain the question catalog, **Auditors** (AU) read. Evidence feeds external auditor systems (Canvas/Optro); the app is also the audit backstop during the client's Oracle OneLMX transition. The architecture in one paragraph:
++
++> Versioned question catalog (`ZCSR_QCATALOG` + `ZCSR_QVERS`, immutable released snapshots) drives generated checklist instances (`ZCSR_HEADER`/`ZCSR_ITEM`) through status lifecycle `NS → IP → SB → UR → CP` (locked) or `RT` (back to `IP`), changed **only** via function imports behind a server-side transition matrix. Electronic signature = user + server timestamp at Sign & Submit. Attachments are a byte-identical media entity (`ZCSR_ATTACH`, XSTRING + SHA-256, soft delete). An in-house LLM provides **advisory-only** AI triage flags (`ZCSR_AIFLAG`) that never block submission. One shared OData V2 service `ZCSR_CHECKLIST_SRV` backs two freestyle UI5 apps: `zcsr.checklist` (analyst/reviewer/admin) and the admin-only catalog maintenance app `zcsr.catalog`.
++
++### Authoritative documents (never contradict these; propose revisions instead)
++| Document | Governs |
++|---|---|
++| `design/CSR_Functional_Specification.docx` + `CSR_PRD.docx` | Scope, roles, FRs |
++| `design/CSR_Technical_Specification_v3.docx` (v0.3) | DDIC, domains, SEGW model, auth, build order |
++| `design/CSR_UI5_Design_Proposal.docx` (v0.2) | Main-app UX: procedure cards, worklist, review |
++| `design/CSR_Catalog_App_Design.docx` (v0.1) | Companion catalog app UX + versioning rules |
++| `ABAP/CSR_ABAP_Development_Specification.docx` (v0.1) | Backend component contracts (code in `ABAP/`) |
++| `design/ZCSR_CHECKLIST_SRV_metadata.xml` | **The OData contract — read-only source of truth** |
++| `ClaudeCode/claude.md` / `CLAUDE-catalog.md` / `claude_abap.md` | Per-assignment governing prompts |
++| `ClaudeCode/PROMPT-build-frontend.md` | Phased frontend build prompts + verification gates |
++
++⚠️ `design/zcsr_metadata.xml` (lowercase) is a **stale v0.1 snapshot** (Section still CHAR 40, Question entity incomplete, no CatalogVersion). Never bind against it. The contract is `ZCSR_CHECKLIST_SRV_metadata.xml`.
++
++### Delivery phases (know which one you're in)
++- **Backend (COMPLETE, 2026-10):** DDIC + `ZCL_CSR_*` classes + `ZCL_ZCSR_CHECKLIST_DPC_EXT`; service `ZCSR_CHECKLIST_SRV` is live on DEV. Reference sources in `ABAP/` (SE80 is master).
++- **Frontend main app (CURRENT):** `zcsr.checklist` — Phases 0–7 per `ClaudeCode/PROMPT-build-frontend.md` (shell → Worklist → procedure cards/autosave → Sign & Submit → review → admin → tests → live smoke test).
++- **Companion catalog app:** `zcsr.catalog` per `CLAUDE-catalog.md`, after main-app Phase 7.
++- **Hardening:** jobs in production schedule, evidence-export verification, catalog release workflow end-to-end on QA.
++
++---
++
++## 3. Hard Guardrails (violations = rejected work)
++
++1. **Platform ceiling is absolute:** OData **V2**, SAPUI5 **1.108**, classic ABAP (NW 7.50 syntax max). Forbidden anywhere: OData V4 (`sap.ui.model.odata.v4.*`), RAP/CDS behavior/BDEF, Fiori Elements / `sap.fe.*`, BTP/CAP, TypeScript, `localStorage`/`sessionStorage`/IndexedDB, any UI5 API newer than 1.108.
++2. **The metadata is the contract.** `design/ZCSR_CHECKLIST_SRV_metadata.xml` is read-only; apps copy it to `webapp/localService/metadata.xml` and never add properties it lacks. If a task appears to need a contract change, stop and raise it — the backend is live and versioned.
++3. **Status changes only via the nine function imports.** The UI never writes `Status` by property update, never simulates a function-import result, and refreshes bindings explicitly afterwards (`refreshAfterChange` stays false).
++4. **Client validation is a UX mirror only.** The server is authoritative; `SubmitChecklist` returns ALL failures in one response (`innererror/errordetails`) — surface them itemized via `MessageManager`, mapped to the failing cards.
++5. **Mockserver-first local development** (deliberate inversion of the CDC project's rule — do not import its no-mock stance here): `ui5 serve` boots against `sap.ui.core.util.MockServer` with all nine function imports explicitly mocked per the transition matrix. Phase 7 switches to the live DEV service via proxy; **report** live-vs-mock discrepancies, never fix them silently — especially whether `ToItems` returns `Inptype 'C'` instruction rows (open flag, see `NOTES.md`).
++6. **AI is advisory only.** Flags never block submission; nothing auto-approves; AI failure = zero flags, silently.
++7. **Attachments are evidence.** Media entity with slug `{HeaderGuid}/{QuestionId}/{Filename}`, byte-identical round trip, original filename on download, soft delete only. Never cache or transform file bytes client-side.
++8. **Authorization is server-side** (`Z_CSR_CHK`, row-level `ZCSR_ASSIGN` filtering; ACTVT 70 for catalog writes). UI role gating (`?role=` stub locally) is convenience only — never implement authorization logic in the client.
++9. **Hosting:** production UI5 is served by the FES/launchpad (BSP deploy via `/UI5/UI5_REPOSITORY_LOAD`). Local dev may bootstrap UI5 1.108 from the public CDN or ui5-tooling framework resources — this is an internal LMI prototype, not the CDC federal landscape.
++10. **Accessibility and semantics are acceptance criteria:** keyboard-complete, all strings in i18n, status/section conveyed by text + semantic state (never color alone, never raw domain codes).
++
++---
++
++## 4. Workspace Layout
++
++```
++CSR_LMI/
++├── ABAP/                       # reference ABAP sources + ABAP dev spec (SE80 is master)
++├── ClaudeCode/                 # governing prompts (claude.md, CLAUDE-catalog.md,
++│                               #   claude_abap.md) + PROMPT-build-frontend.md
++├── copilot/                    # Copilot variant of the instructions
++├── design/                     # authoritative specs, OData contract, catalog +
++│                               #   value-table seed workbooks
++├── checklist/                  # (to create, Phase 0) main app zcsr.checklist
++│   ├── ui5.yaml / package.json
++│   └── webapp/                 # layout per ClaudeCode/claude.md §3
++├── catalog/                    # (to create, later) companion app zcsr.catalog
++│   └── webapp/                 # layout per ClaudeCode/CLAUDE-catalog.md §3
++├── AGENT_INSTRUCTIONS.txt · AGENT_ONBOARDING.md · UI5_AGENT_PLAYBOOK.md · NOTES.md
++└── LOB CSR and Qtr Close Chklsts - 2021-3Q - Final-6.xlsm   # client source template
++```
++
++Paths inside `ClaudeCode/claude.md` (`webapp/...`) are **relative to the app folder** (`checklist/`); same for the catalog prompt and `catalog/`. Frontend agents work in the app folders; backend work happens on-system (reference copies in `ABAP/` kept in sync — flag on-system actions in your summary).
++
++### Current Implementation Status (2026-10-26)
++
++**Backend is COMPLETE and the service is live on DEV.** All components per the ABAP Development Specification are activated; `ZCSR_CHECKLIST_SRV` serves the v0.3 contract. **Frontend has not started.** A verified starter (`zcsr-checklist-starter.zip` — booting shell, Worklist, mockserver with all nine function imports, mock data generated from the seed workbooks) exists outside the repo and is the optional Phase 0 shortcut; otherwise Phase 0 scaffolds from scratch. Open flags are tracked in `NOTES.md` — read them before Phase 2 and Phase 7.
++
++---
++
++## 5. Roles per Agent Assignment
++
++**Frontend agent (main app):** governed by `ClaudeCode/claude.md`; build order and acceptance gates in `ClaudeCode/PROMPT-build-frontend.md`. Consumes the V2 service as-is; if the service lacks something, file a backend request in your summary — you do not work around it client-side and you do not touch the metadata.
++**Catalog-app agent:** governed by `ClaudeCode/CLAUDE-catalog.md`; starts after main-app Phase 7.
++**Backend agent:** governed by `ClaudeCode/claude_abap.md`. The service contract (entities, properties, function-import signatures) does not change without an approved spec revision from the architect.
++**Either:** update the docs you affect; keep the console/lint clean; ask when the spec is ambiguous, decide-and-log in `NOTES.md` when it's merely silent on a detail.
++
++---
++
++## 6. Testing Checklist (before finishing any task)
++
++- [ ] App boots with **zero console errors** against the mockserver (and, from Phase 7, against the live DEV service)
++- [ ] `npm run lint` clean; QUnit/OPA5 green once configured (Phase 6)
++- [ ] Blocked submit shows **every** failure itemized in the MessagePopover, each mapped to its card (ValueState.Error)
++- [ ] Autosave: 2 s debounced MERGE visible in the network trace; flush on route-leave; footer timestamp updates
++- [ ] N/A switch appears **only** where `NaAllowed`, disables the response field, satisfies the requirement
++- [ ] Role behavior per `?role=AN|RV|AD|AU` (UI convenience; backend is authoritative — empty worklist ≠ bug: check `ZCSR_ASSIGN` scope first)
++- [ ] All strings in i18n; section/status codes never displayed raw; status = text + semantic state
++- [ ] Keyboard-only pass on anything you touched
++- [ ] "Did I update every doc this change affects?" (including `NOTES.md` for decisions/bugs)
++
++---
++
++*Companion: `UI5_AGENT_PLAYBOOK.md` for frontend patterns. The CDC/E008 docs this scaffold was copied from (OData V4, RAP, S/4HANA 2025, no-mock rule) do NOT apply here — if a pattern smells like V4, check the playbook's banned list.*
+diff --git a/AGENT_ONBOARDING_CDC.md b/AGENT_ONBOARDING_CDC.md
+deleted file mode 100644
+index b372815..0000000
+--- a/AGENT_ONBOARDING_CDC.md
++++ /dev/null
+@@ -1,117 +0,0 @@
+-# Agent Onboarding — E008 Vaccine Ordering (CDC VTrckS on S/4HANA)
+-
+-**Purpose:** Bring any AI agent up to speed on the E008 project, its architecture, and how to work here.
+-**Environment:** SAP S/4HANA 2025 **on-premise** (no BTP runtime dependency), ADT/Eclipse + abapGit for backend, VS Code/BAS for frontend.
+-**Last Updated:** 2026-07-31 — living doc; update it as part of any change that affects it.
+-
+----
+-
+-## 1. Working Relationship & Core Rules
+-
+-**You are a Senior SAP Engineer (UI5/Fiori or RAP/ABAP depending on assignment).** The human lead is an equal technical partner and the solution architect of record.
+-
+-1. **Understand Before Acting** — read the referenced spec/code before answering. Never speculate about code you haven't opened. If a file is referenced, READ IT FIRST.
+-2. **Check In Before Major Changes** — propose the approach and wait for approval on significant modifications.
+-3. **Communicate Clearly** — concise explanation of what changed and why, every step.
+-4. **Simplicity Above All** — smallest change that solves the problem. When in doubt, simpler.
+-5. **Maintain Documentation** — update the affected living docs with every change. No new ad-hoc .md files.
+-6. **Push Back** — if an idea is technically problematic, say so with reasons.
+-7. **Never invent SAP artifact names, config keys, or API signatures.** If unsure whether an object exists on the target release, mark it `TODO-VERIFY` and say so. This rule has teeth on this project.
+-
+----
+-
+-## 2. Project Context (read once, internalize)
+-
+-E008 replaces a CRM_UI (WebDynpro) vaccine ordering application for the CDC. Users: **Awardee** (external customers, jurisdiction-scoped) and **CDC** (internal, full scope). Orders are real SD sales orders. The architecture in one paragraph:
+-
+-> Custom **unmanaged RAP BO** (`ZR_VaccineRequestTP` + items + IoH, **no draft**, late numbering) sourced from released `I_SalesDocument*` views, persisting **exclusively through the standard sales order API** via one adapter class. One behavior layer enforces validations (delegated to E006), status-driven field control, jurisdiction authorization (DCL + instance auth), and all actions — identically for the **OData V4 UI binding** (freestyle cockpit + FE List Report) and the **V4 Web API binding**. UI: FlexibleColumnLayout shell; detail screen = stacked expandable `sap.m.Panel` sections (CRM assignment-block idiom), section set driven per order type by the config resolver.
+-
+-### Authoritative documents (never contradict these; propose revisions instead)
+-| Document | Governs |
+-|---|---|
+-| `E008_Solution_Functional_Specification.docx` (Rev 1.1) | Scope, AD-1…AD-8 decisions, UI design, FRs |
+-| `E008_TechSpec_RAP_BO.docx` | Backend contract: CDS, BDEF, handlers, services |
+-| `E008_ClaudeCode_Build_Prompt.md` | Backend repo generation rules & DoD |
+-| `E008_ROM_Estimate_Phased.xlsx` | Phasing: Phase 0 / MVP-1 / MVP-2 / v1.1 |
+-| Ratified status dictionary (OI-1 output) | 1A–1G semantics — field control derives from it |
+-
+-### Delivery phases (know which one you're in)
+-- **MVP-1 (read path):** CDS read model + DCL + FE List Report + display cockpit shell.
+-- **MVP-2 (transactional core):** create/edit + IoH + save (hard/soft stop) + cancel matrix + resubmit.
+-- **v1.1:** copy, return/replacement, un-cancel (pending OI-2), Web API, cascading value helps, config tables.
+-
+----
+-
+-## 3. Hard Guardrails (violations = rejected work)
+-
+-1. **No external hosting of anything.** No Vercel/CDN-hosted UI5 libraries, no externally hosted mock services, no third-party runtime dependencies. This is a federal (CDC) system: SAPUI5 is served **by the S/4 system / FLP**; all services run on the dev landscape. The `ui5.blckrbbt.host` pattern from other workspaces is explicitly banned here.
+-2. **No mock-data architecture.** Development and prototyping run against the **real MVP-1 read service** (`ZUI_VACCINEREQUEST_O4`) on the dev system. A hardcoded local stub is permitted only as a ≤1-week bridge while the read service activates — it must never grow branching logic (`_isJSONModel()`-style dual paths are banned).
+-3. **No draft.** No draft artifacts in any BDEF; unsaved-state protection is client-side; concurrency = ETag (412 handling mandatory in the UI).
+-4. **Persistence only via `ZCL_VR_SD_ADAPTER`.** Any direct write to VBAK/VBAP/VBKD/VBPA or other SD tables, anywhere, is a failed build. No `COMMIT WORK` outside the RAP framework.
+-5. **No business rules in the client.** Field enablement, action availability, and section visibility come from service metadata (resolver → feature control). If you find yourself hardcoding a status check in a controller, stop — it belongs in the resolver.
+-6. **Never reference `R_SalesOrderTP` / `C_SalesOrderManage*` / `C_SALESORDERMANAGE_SRV`** in any layer. Reuse happens only at released `I_*` views. **Sanctioned temporary exception:** the Phase 1 `frontend/cockpit` prototype is deliberately re-pointed at the standard `C_SALESORDERMANAGE_SRV`/`C_SALESORDERMANAGE_SD` V4 service per `design/E008 prototype repoint prompt.md`, as an interim bridge until `ZUI_VACCINEREQUEST_O4` is available — see `NOTES.md` for details. This exception is scoped to that prototype only; it does not relax the rule anywhere else.
+-7. **Real CDC data never leaves the landscape.** Test data on dev is representative/synthetic.
+-8. **Section 508 is an acceptance criterion**, not a polish item: keyboard-complete, announced expand/collapse, labeled fields, message announcements.
+-
+----
+-
+-## 4. Workspace Layout
+-
+-```
+-e008/
+-├── backend/                    # abapGit repo (see E008_ClaudeCode_Build_Prompt.md for full tree)
+-│   └── src/zvr_order/          # _cds, _bo, _srv, _cfg, _tst sub-packages
+-├── frontend/
+-│   ├── cockpit/webapp/         # Freestyle SAPUI5 app (OData V4)
+-│   │   ├── Component.js
+-│   │   ├── manifest.json       # dataSource -> /sap/opu/odata4/sap/zui_vaccinerequest_o4/...
+-│   │   ├── view/               # App (FCL), Cockpit, section fragments
+-│   │   ├── controller/
+-│   │   ├── sections/           # Panel section fragments + SectionFactory.js
+-│   │   ├── model/formatter.js
+-│   │   └── i18n/
+-│   └── listreport/             # FE V4 List Report (annotation-driven; minimal code)
+-├── docs/                       # the authoritative documents (§2) + this file + playbook
+-└── AGENT_ONBOARDING.md         # THIS FILE
+-```
+-
+-Backend agents: work in `backend/` per the Claude Code build prompt; activation happens on-system via abapGit pull + ADT — flag anything needing on-system action in your summary.
+-Frontend agents: work in `frontend/`; the app runs against the dev-system service (see playbook §1 for proxy setup).
+-
+-### Current Implementation Status (2026-07-31)
+-
+-**Phase 1 (initial prototyping) is COMPLETE.** `frontend/cockpit` is a working, live-backend-connected read-only prototype: FCL shell, master/detail routing, filterable master list, detail header + expandable panel sections, all wired to the temporary standard `C_SALESORDERMANAGE_SRV`/`C_SALESORDERMANAGE_SD` V4 service through the centralized `ServiceSchema.js` module. It runs clean (no console errors) against the real dev-system service. See `NOTES.md` for the full list of bugs found/fixed while stabilizing it (URL segment swap, whole-entity binding anti-pattern, `FilterBar` property name, App busy-overlay, `SectionFactory` duplicate-content race).
+-
+-- Verified dev landscape host for current frontend work: `https://sapapp2dh1.cdc.gov:44300` with client `100`.
+-- Local prototype runtime currently depends on a checked-in metadata snapshot at `frontend/cockpit/webapp/localService/metadata.xml`, copied from `design/so.xml`, so the mock/server tooling can start before the custom E008 read service is available.
+-- `frontend/cockpit` local sandbox only works with a mixed library setup: `/resources` proxied from the SAP host and `/test-resources` served locally by UI5 tooling. Proxying `/test-resources` to the host breaks `sap/ushell/bootstrap/sandbox.js` on this landscape.
+-- `ui5-deploy.yaml` was generated for ABAP deploy (`ZCDC_VTRCKS`, package `ZCM`), but the current landscape is SNC-only for the human developer. `fiori deploy` reaches an HTTP username/password prompt and does not reuse the SAP GUI SNC session.
+-- For this landscape, the expected deployment path is `npm run build` followed by ABAP-side upload with an SNC-enabled SAP tool such as `/UI5/UI5_REPOSITORY_LOAD`, then FLP catalog/target mapping maintenance on-system.
+-- `backend/` RAP package and `frontend/listreport/` FE app are not yet implemented in this repository.
+-
+-**Phase 2 (in progress, starting now): Search and Content section UI adjustments.** Customer requirements call for reshaping the Master-view Search (filter bar) and Detail-view Content (panel sections) to match actual customer needs — this has not been scoped in code yet. Before implementing: re-read whatever customer requirement doc(s) get shared, and confirm which `ServiceSchema` fields/entity sets are already available vs. need a backend ask (Onboarding §5 — don't work around a missing field client-side, file a backend request instead).
+-
+----
+-
+-## 5. Roles per Agent Assignment
+-
+-**Frontend agent:** cockpit views/controllers/sections, List Report annotations, formatter, i18n, OPA5/QUnit. Consumes the V4 service as-is; if the service lacks something, you file a backend request in your summary — you do not work around it client-side.
+-**Backend agent:** everything under `backend/` per the tech spec + build prompt. You do not change the service contract (entity names, action signatures) without an approved spec revision.
+-**Either:** update docs you affect; keep the console/ATC clean; ask when the spec is ambiguous, decide-and-log when it's merely silent on a detail.
+-
+----
+-
+-## 6. Testing Checklist (before finishing any task)
+-
+-- [ ] App loads with zero console errors against the **real dev service**
+-- [ ] Works for both roles (CDC full-scope, Awardee jurisdiction-scoped) — empty result ≠ bug: check DCL first
+-- [ ] ETag conflict (412) path behaves: reload dialog, no data loss surprise
+-- [ ] Messages anchor to fields/panels; collapsed-panel errors auto-expand
+-- [ ] Keyboard-only pass on anything you touched (508)
+-- [ ] i18n keys, no hardcoded strings
+-- [ ] Backend: EML tests green, ATC clean incl. the no-VB*-writes check
+-- [ ] "Did I update every doc this change affects?"
+-
+----
+-
+-*Companion: `E008_UI5_V4_PLAYBOOK.md` for frontend patterns. The LMI workspace docs (Vercel hosting, dual-mode, V2 patterns, UI5 1.71) do NOT apply here.*
+diff --git a/ClaudeCode/PROMPT-build-frontend.md b/ClaudeCode/PROMPT-build-frontend.md
+new file mode 100644
+index 0000000..f0cc443
+--- /dev/null
++++ b/ClaudeCode/PROMPT-build-frontend.md
+@@ -0,0 +1,189 @@
++# Claude Code Build Prompts — CSR Auditing Application Frontend (VS Code)
++
++How to use: put `CLAUDE.md` at the repo root, open the folder in VS Code, start
++Claude Code (`claude` in the integrated terminal). `CLAUDE.md` loads
++automatically and governs every session — these prompts only tell it **what to
++build next**; the rules live in CLAUDE.md. Paste one phase at a time, review
++the result, commit, then move on. Each phase ends with its own verification
++gate, so never accept "done" without it.
++
++Prerequisite in the repo root: `ZCSR_CHECKLIST_SRV_metadata.xml` (copied to
++`webapp/localService/metadata.xml` in Phase 0) and the two seed workbooks
++(`ZCSR_QCATALOG_seed_v0001.xlsx`, `ZCSR_value_tables_seed.xlsx`).
++
++---
++
++## Phase 0 — Repo setup & booting shell
++
++```
++Set up the zcsr.checklist repository per CLAUDE.md §2–§3 so the app boots
++against a mockserver.
++
++If zcsr-checklist-starter.zip is present in the repo, unzip it here, run
++npm install and npm start, and verify instead of scaffolding from scratch.
++Otherwise create: package.json (scripts exactly as CLAUDE.md §2), ui5.yaml,
++eslint config, webapp/index.html + index.js (UI5 1.108 bootstrap, sap_horizon,
++mockserver started for local dev), manifest.json with the mainService
++dataSource (/sap/opu/odata/sap/ZCSR_CHECKLIST_SRV/, localUri
++localService/metadata.xml, defaultBindingMode TwoWay, refreshAfterChange
++false) and ALL SIX routes from CLAUDE.md §5, Component.js (device + app-state
++models, router init, central metadataFailed handler), empty-but-routable stub
++views for Worklist / ChecklistDetail / ReviewQueue / AdminBoard / NotFound,
++model/formatter.js (statusState, severityState, sectionText per CLAUDE.md §8),
++model/roles.js (?role URL param stub, default AD, documented as UI convenience
++only), css/style.css with ONLY the three .zcsr* classes, i18n/i18n.properties.
++
++Copy ZCSR_CHECKLIST_SRV_metadata.xml to webapp/localService/metadata.xml and
++treat it as read-only. Build localService/mockserver.js against it and
++generate mockdata JSONs from the two seed workbooks (versions 0001 Released +
++0002 Draft; 6–8 demo ChecklistHeaderSet instances covering every status
++NS/IP/SB/UR/RT/CP with items carrying the denormalized catalog fields; VH sets
++from the value-table workbook). Mock ALL NINE function imports explicitly —
++MockServer does not auto-mock them — mutating mock data per the status
++transition matrix; SubmitChecklist must run the §7 validation mirror and
++answer failures as one OData error with itemized innererror/errordetails.
++
++Verify: npm run lint clean; npm start boots; Worklist route renders with zero
++console errors; navigating to an unknown hash lands on NotFound. Show me the
++file tree and the boot result before finishing.
++```
++
++## Phase 1 — Worklist
++
++```
++Build the Worklist per CLAUDE.md §5 and §8. Growing table (threshold 25) over
++ChecklistHeaderSet sorted by DueDate: Type, LOB, Segment ('ALL' displayed as
++"All"), Period, Analyst, Due, Progress %, AI flags, Status as ObjectStatus
++(text + formatter.statusState — never color alone). Filter bar: cascading
++LOB → Market Segment ComboBoxes using MarketSegVHSet filtered by its Lob
++property. Row press navigates to the detail route. Review Queue / Admin
++buttons visible per role (RV/AD, AD). All strings in i18n.
++
++Verify: lint clean, app boots, filters cascade correctly (selecting a LOB
++restricts segments and the table), clearing filters restores the full list,
++zero console errors.
++```
++
++## Phase 2 — ChecklistDetail: procedure cards (core screen)
++
++```
++Build the ChecklistDetail procedure cards exactly per CLAUDE.md §6. One card
++per ChecklistItem with Inptype 'I', ordered by Seqnr, grouped by Section
++(headers via formatter.sectionText, never the raw code). Inptype 'C' rows
++render inside a collapsed Instructions panel above the first card,
++auto-expanded on a checklist's first open. Card anatomy top to bottom:
++1) title bar "{Seqnr} · {Title}" + completion indicator (answered/open/N/A);
++2) requirement sap.m.Text maxLines=3 with a "Show more" toggle; 3) collapsed
++Example panel only when ExampleText is non-empty; 4) growing TextArea with
++class zcsrInput, N/A Switch rendered ONLY when NaAllowed (on = TextArea
++disabled, NaFlag=true); 5) attachments only when AttachMode !== 'N':
++sap.m.upload.UploadSet bound to the item's ToAttachments, class zcsrAttach,
++label "Optional Attachments" (O) / "Required evidence" (R).
++
++Autosave: liveChange → 2 s debounce → submitChanges() MERGE batch; flush on
++route-leave; footer shows "Draft autosaved hh:mm:ss". refreshAfterChange stays
++false; refresh bindings explicitly after any function import. Deep-link guard
++in onPatternMatched: unknown/unauthorized GUIDs route to NotFound.
++
++Verify against the mockserver: lint clean; typing in a response autosaves
++after 2 s (watch the MERGE in the network tab); N/A switch appears only on
++NaAllowed items and disables the field; Instructions panel auto-expands on
++first open only; zero console errors.
++```
++
++## Phase 3 — Sign & Submit + itemized errors
++
++```
++Implement Sign & Submit per CLAUDE.md §6–§7. Button label from i18n
++btnSignSubmit. Flush pending autosave, then call the SubmitChecklist function
++import — never simulate its result and never write Status from the client. On
++business error, push the V2 error container details (innererror/errordetails)
++into MessageManager, map each failing QuestionId to its control
++(ValueState.Error + text), and open the MessagePopover from the footer. On
++success: refresh the header binding, lock the form, MessageToast.
++
++Verify: with the mock NS/IP checklist missing required responses, Submit shows
++the popover listing EVERY failure and marks each offending card; filling them
++(or valid N/A) then submitting flips status to Submitted, stamps SignedBy/At,
++and locks the form. Lint clean, zero console errors.
++```
++
++## Phase 4 — Review mode + ReviewQueue
++
++```
++Build review per CLAUDE.md §5–§6. ReviewQueue: SB/UR checklists sorted by
++AiFlagCount descending; Start Review calls the function import then navigates
++to detailReview. ChecklistDetail in review mode ({app>/mode}): form fully
++read-only via expression binding, AI-flag panel expanded (ToAiFlags, severity
++via formatter.severityState), footer = Complete Review / Return to Analyst.
++Return opens ReturnNotesDialog (fragment) with a mandatory TextArea — client
++check AND rely on the server's 007 error. When Status=RT in edit mode, show a
++MessageStrip with the latest review note so the analyst sees why it came back.
++
++Verify: full mock round trip — Start Review (SB→UR), Return with empty notes
++is blocked, Return with notes flips to RT and the analyst view shows the
++banner, Complete Review flips to CP and the form stays locked. Lint clean,
++zero console errors.
++```
++
++## Phase 5 — AdminBoard
++
++```
++Build the AdminBoard (role AD) per CLAUDE.md §5: status overview of all
++instances for a selected period (counts by status, text + semantic state),
++ReassignDialog calling ReassignChecklist, and a GenerateInstances action
++(Chktype + Year + Quarter) that calls the function import and refreshes.
++UI gating by role stays convenience-only — no client-side authorization logic
++beyond visibility.
++
++Verify: reassign updates the analyst in the worklist; GenerateInstances
++returns and the board refreshes. Lint clean, zero console errors.
++```
++
++## Phase 6 — Tests
++
++```
++Replace the npm test / npm run opa placeholders per CLAUDE.md §10. QUnit:
++formatter.js (every status/severity/section mapping) and the validation
++mirror (RespRequired × NaAllowed × NaFlag × response, AttachMode R with 0 vs
++≥1 attachments). OPA5 journeys against the mockserver: analyst happy path
++(fill → Sign & Submit), blocked submit with itemized errors, N/A flow,
++reviewer return flow. Wire them into npm test and npm run opa so both exit 0.
++
++Verify: both commands green, lint clean.
++```
++
++## Phase 7 — Live service smoke test
++
++```
++The backend ZCSR_CHECKLIST_SRV is live. Add a ui5.yaml proxy for
++/sap/opu/odata to the FES host (I will provide host/client — ask, do not
++guess) and an index toggle to skip mockserver.init(). Smoke-test against the
++live service and report discrepancies WITHOUT fixing silently, especially:
++(1) whether ToItems returns Inptype 'C' instruction rows or only 'I' — if only
++'I', propose the §6 Instructions panel reading QuestionSet instead and wait
++for my decision; (2) field formats (dates, guids) versus the mock; (3) the
++real error container shape from SubmitChecklist. metadata.xml stays read-only
++— if the live metadata differs from the repo copy, stop and raise it.
++```
++
++---
++
++## Companion app kickoff (separate repo/folder, after Phase 7)
++
++Place `CLAUDE-catalog.md` as that folder's `CLAUDE.md`, then:
++
++```
++Set up zcsr.catalog per CLAUDE.md §2–§3 (own ui5.yaml, FlexibleColumnLayout
++shell, mockserver with versions 0001 Released + 0002 Draft and the
++CopyCatalogVersion / ReleaseCatalogVersion mocks), then build in this order,
++verifying each step like the main app: 1) CatalogList with the two-filter
++IconTabBar (Questions — P / Instructions — I, live counts) + version Select
++with Draft/Released pill; 2) RowEditor per section (P = full editor with
++Behavior panel; I = Title + Text only, panel absent) with explicit Save,
++dirty-guard, and live preview reusing the main app's formatters; 3) Add
++(Section/Inptype derived from the active tab, QuestionId read from the create
++response — never constructed client-side), Delete (Draft only), reorder via
++two immediate Seqnr MERGEs; 4) Copy to New Version and Release Version flows;
++read-only rendering + MessageStrip when the version is Released.
++```
+diff --git a/NOTES (1).md b/NOTES (1).md
+deleted file mode 100644
+index 2dea0fe..0000000
+--- a/NOTES (1).md	
++++ /dev/null
+@@ -1,4 +0,0 @@
+-# NOTES
+-
+-
+-
+diff --git a/NOTES.md b/NOTES.md
+new file mode 100644
+index 0000000..e711eaf
+--- /dev/null
++++ b/NOTES.md
+@@ -0,0 +1,71 @@
++# NOTES — LMI CSR Auditing Application
++
++Running log of decisions, corrections, bugs and open flags. Append dated entries;
++newest first. Agents: read the **Open flags** section before starting any task.
++
++---
++
++## Open flags (resolve, then move to the log with the outcome)
++
++1. **`ToItems` and instruction rows (affects frontend Phase 2 + Phase 7).**
++   The UI design renders the Instructions panel from `ChecklistItem` rows with
++   `Inptype = 'C'`. The reference ABAP `GENERATE_INSTANCES` created `ZCSR_ITEM`
++   records only for `INPTYPE = 'I'`. Whether the live DPC returns `C` rows under
++   `ToItems` (synthesized from the bound catalog version) or not decides the
++   frontend approach: panel from `ToItems` vs. panel from `QuestionSet` for the
++   header's `CatalogVers`. **Verify on the first live-service call; do not
++   improvise client-side.**
++2. **`NA_ALLOWED` missing from the catalog seed workbook.**
++   `design/ZCSR_QCATALOG_seed_v0001.xlsx` predates the v0.2 field. Before (or
++   at) catalog load, derive the column from the client template's explicit N/A
++   permissions (`LOB CSR and Qtr Close Chklsts - 2021-3Q - Final-6.xlsm`).
++   Frontend mock data meanwhile uses demo values only.
++3. **Stale metadata copy in `design/`.**
++   `design/zcsr_metadata.xml` is the obsolete v0.1 contract (Section CHAR 40,
++   incomplete Question entity, no CatalogVersion/version FIs). Recommend
++   deleting it or renaming to `zcsr_metadata_v0.1_OBSOLETE.xml`. The contract
++   is `design/ZCSR_CHECKLIST_SRV_metadata.xml`.
++4. **Duplicate readme in `ABAP/`.**
++   `ABAP/readme.md` (stub) duplicates `ABAP/README.md` (the real activation
++   guide + message class texts). Recommend deleting the stub — on
++   case-insensitive filesystems (Windows checkouts) the pair collides.
++5. **Market Segment templates (CSRM/QCLM) still pending from the client.**
++   Catalog version 0001 covers CSRL + QCLL only. When the segment templates
++   arrive they may grow the `ZCSR_SECTION` domain (DDIC transport each) — see
++   Tech Spec changelog v0.2 item 7.
++
++---
++
++## Log
++
++### 2026-10-26 — Backend complete; frontend phase begins; agent scaffolding adapted
++- `ZCSR_CHECKLIST_SRV` is live on DEV; all ABAP components activated
++  (reference copies in `ABAP/`, contracts in the ABAP Development Specification).
++- Agent scaffolding (`AGENT_INSTRUCTIONS.txt`, `AGENT_ONBOARDING.md`,
++  `UI5_AGENT_PLAYBOOK.md`, this file) adapted from the CDC/E008 originals to
++  LMI CSR. Key inversions vs. CDC: OData **V2** not V4; freestyle UI5 **1.108**
++  not S/4-delivered; **mockserver-first** local dev (CDC banned mocks); CDN
++  bootstrap permitted for local dev (CDC banned external hosting). CDC-only
++  rules (ETag/412 flows, RAP field control, draftless-RAP concerns) removed.
++- Frontend build plan: `ClaudeCode/PROMPT-build-frontend.md` (Phases 0–7 with
++  verification gates). Verified starter repo `zcsr-checklist-starter.zip`
++  (booting shell + Worklist + mockserver with all nine function imports +
++  mock data generated from the seed workbooks) available as the Phase 0 shortcut.
++
++### 2026-08/09 — Design-suite corrections worth remembering (from the design phase)
++- **Gateway business exception is `/IWBEP/CX_MGW_BUSI_EXCEPTION`** (with the
++  DPC message container). Early drafts said `/IWBEP/CX_MPC_BUSI_EXCEPTION`,
++  which does not exist; all docs and prompts were corrected. If you see the
++  MPC variant anywhere, it's a leftover — fix it and log here.
++- `SECTION` converted from CHAR 40 free text to fixed-value domain
++  **`ZCSR_SECTION`** (`P` = Procedures, `I` = Instructions / Notes); adding
++  future section values is a DDIC change + transport.
++- v0.2 template-driven model deltas: INPTYPE 'A' removed in favor of
++  `ATTACH_MODE` (N/O/R) + `RESP_REQUIRED`; `TITLE`/`EXAMPLE_TEXT` added and
++  denormalized into `ChecklistItem`; `NA_ALLOWED` added; `MARKET_SEG` accepts
++  literal `'ALL'`; `ZCSR_MSEG` carries parent LOB (cascading filters);
++  submit labeled **"Sign & Submit"**.
++- v0.3 catalog deltas: `ZCSR_QVERS` version table (Draft/Released, one-way
++  release), `QuestionSet` CRUD gated by server-computed `Editable`,
++  `CopyCatalogVersion`/`ReleaseCatalogVersion` function imports, change
++  documents extended to catalog writes, ACTVT 70 for catalog maintenance.
+diff --git a/UI5_AGENT_PLAYBOOK.md b/UI5_AGENT_PLAYBOOK.md
+new file mode 100644
+index 0000000..1386d97
+--- /dev/null
++++ b/UI5_AGENT_PLAYBOOK.md
+@@ -0,0 +1,153 @@
++# LMI CSR UI5 Playbook — OData V2 on ECC8 / FES 2022
++
++**Purpose:** Frontend patterns for AI agents on the CSR Auditing Application. Replaces the CDC/E008 (V4) playbook this file was copied from.
++**Stack:** Freestyle **SAPUI5 1.108** (FES 2022 baseline — verify "Since ≤ 1.108" in the API reference before using any control/method), theme **Horizon** (`sap_horizon`), **OData V2 model** (`sap.ui.model.odata.v2.ODataModel`), two apps on one service: `zcsr.checklist` + `zcsr.catalog`.
++**Last Updated:** 2026-10-26 — living doc.
++
++> ⚠️ Patterns from the CDC/E008 playbook that do NOT apply here — if you catch yourself writing any of these, you're following the wrong playbook: `sap.ui.model.odata.v4.ODataModel`, `bindContext(...)`/`invoke()` bound actions, `requestProperty`/`requestSideEffects`, `autoExpandSelect`, `$auto` batch groups, annotation-driven field control, FE building blocks, ISO-date assumptions, ETag/412-centric flows. Here, **V2 is the law**: `/Date(ms)/` values exist and the V2 type system handles them; `callFunction` drives every state change; `metadataLoaded()` / `attachMetadataFailed` are correct APIs, not mistakes.
++
++---
++
++## 1. Bootstrap & Local Dev
++
++**Local development runs against the mockserver by default** (Onboarding §3.5 — deliberate inversion of the CDC rule). `npm start` boots `index.html`, which starts `localService/mockserver.js` before the ComponentContainer. UI5 1.108 loads from the public CDN for local dev:
++
++```html
++<script id="sap-ui-bootstrap"
++    src="https://ui5.sap.com/1.108/resources/sap-ui-core.js"
++    data-sap-ui-theme="sap_horizon"
++    data-sap-ui-libs="sap.m"
++    data-sap-ui-async="true"
++    data-sap-ui-compatVersion="edge"
++    data-sap-ui-oninit="module:zcsr/checklist/index"
++    data-sap-ui-resourceroots='{"zcsr.checklist": "./"}'>
++</script>
++```
++
++- Tooling-managed framework (exact patch pinning, offline dev) is the alternative — see the comment block in `ui5.yaml`; then the src becomes `resources/sap-ui-core.js`.
++- **Mockserver rules:** simulate against `localService/metadata.xml`; `MockServer` does **not** auto-mock function imports — every one of the nine gets an explicit request handler that mutates mock data per the status transition matrix; `SubmitChecklist`'s handler runs the validation mirror and answers failures as one OData error with itemized `innererror/errordetails`, so the blocked-submit UX is fully testable locally.
++- **Phase 7 (live DEV service):** add a ui5-tooling backend proxy for `/sap/opu/odata` to the FES host (ask the architect for host/client — never guess), add a toggle to skip `mockserver.init()`. Report live-vs-mock discrepancies; do not silently adapt (Onboarding §3.5).
++- **Deployment:** `npm run build`, BSP upload via `/UI5/UI5_REPOSITORY_LOAD`, launchpad catalog/tile on-system. In production the FES serves UI5; the CDN bootstrap is local-dev only.
++
++## 2. Manifest & Model (V2)
++
++```json
++"sap.app": { "dataSources": { "mainService": {
++  "uri": "/sap/opu/odata/sap/ZCSR_CHECKLIST_SRV/",
++  "type": "OData",
++  "settings": { "odataVersion": "2.0", "localUri": "localService/metadata.xml" } } } },
++"sap.ui5": { "models": { "": {
++  "dataSource": "mainService", "preload": true,
++  "settings": {
++    "defaultBindingMode": "TwoWay",
++    "defaultCountMode": "Inline",
++    "refreshAfterChange": false,
++    "useBatch": true } } } }
++```
++
++- One default model from the manifest; don't also create it in `Component.js`.
++- `TwoWay` + `refreshAfterChange: false` is the autosave foundation: item edits accumulate as pending changes, a debounce flushes them, and bindings refresh **explicitly** after function imports.
++- Guard first binds with `oModel.metadataLoaded().then(...)`; wire `attachMetadataFailed` centrally in `Component.js`.
++
++## 3. Core V2 Patterns
++
++### 3.1 Keys, element binding, reads
++```javascript
++var sPath = "/" + oModel.createKey("ChecklistHeaderSet", { HeaderGuid: sGuid });
++oView.bindElement({ path: sPath, events: { change: this._onBindingChange.bind(this) } });
++```
++Never concatenate entity URLs by string (`createKey` handles `guid'...'` literals); never bypass the model with fetch/AJAX.
++
++### 3.2 Function imports — the ONLY way state changes
++```javascript
++oModel.callFunction("/SubmitChecklist", {
++    method: "POST",
++    urlParameters: { HeaderGuid: sGuid },
++    success: function (oData) { /* refresh header binding explicitly, lock form */ },
++    error: this._handleBusinessError.bind(this)   // -> 3.4
++});
++```
++All nine: `SubmitChecklist`, `StartReview`, `CompleteReview(Outcome, Notes)`, `ReassignChecklist(NewAnalyst)`, `GenerateInstances(Chktype, PeriodYear, PeriodQtr)`, `TriggerAiTriage`, `ExportEvidence` (GET → binary ZIP, trigger a browser download), `CopyCatalogVersion(SourceVersion)`, `ReleaseCatalogVersion(Version, ValidFrom)`. Never write `Status` (or catalog version `Status`) via property update; never simulate a function-import result client-side.
++
++### 3.3 Autosave (ChecklistDetail)
++`liveChange` → restartable 2 s timer → `oModel.submitChanges({ success, error })` (MERGE batch of `Response`/`NaFlag` only) → footer "Draft autosaved hh:mm:ss". Flush pending changes on route-leave and before Sign & Submit. `hasPendingChanges()` is the dirty check.
++
++### 3.4 Business errors → itemized MessageManager mapping
++`SubmitChecklist` fails with ONE response carrying every validation failure:
++```javascript
++_handleBusinessError: function (oError) {
++    var oResp = JSON.parse(oError.responseText);
++    var aDetails = (oResp.error.innererror && oResp.error.innererror.errordetails) || [];
++    // one sap.ui.core.message.Message per detail; detail.target = QuestionId ->
++    // resolve to the card's control, set ValueState.Error + text, then open
++    // the MessagePopover from the footer. Fall back to oResp.error.message.value.
++}
++```
++The V2 model also pushes parsed messages into `sap.ui.getCore().getMessageManager()` — prefer reading from there where it already has them; the explicit parse is the fallback for mapping targets to cards.
++
++### 3.5 Dates
++V2 serializes `Edm.DateTime` as `/Date(ms)/` — the model and `sap.ui.model.type.Date`/`DateTime` handle it. Bind with a type (`formatOptions: { style: 'medium', UTC: true }` for `display-format="Date"` fields like `DueDate`/`ValidFrom`). Do NOT hand-write `/Date(...)/` regexes in controllers, and do NOT delete them from mock data — they're the correct wire format here.
++
++### 3.6 Attachments (media entity)
++Upload via `sap.m.upload.UploadSet` bound to the item's `ToAttachments`: POST stream with slug `{HeaderGuid}/{QuestionId}/{Filename}` and the model's CSRF token (`oModel.getSecurityToken()`, refresh on 403). Download via `$value` — the backend sets `Content-Disposition` with the original filename; byte-identical round trip is a backend guarantee, not something the client re-implements. Delete = soft delete (standard DELETE; row survives for audit).
++
++### 3.7 Review mode
++One `ChecklistDetail` view serves edit and review: `{app>/mode}` drives `editable`/visibility via expression binding. Review footer = Complete Review / Return to Analyst (ReturnNotesDialog; notes mandatory client-side AND server-enforced — expect ZCSR 007 if bypassed).
++
++## 4. CSR-Specific UI Patterns
++
++### 4.1 Procedure cards (the core screen — full contract in ClaudeCode/claude.md §6)
++One card per item with `Inptype === 'I'`, ordered `Seqnr`, grouped by `Section` (headers via `formatter.sectionText` — never the raw P/I code). Anatomy: title bar `"{Seqnr} · {Title}"` + completion indicator → requirement `sap.m.Text maxLines="3"` + "Show more" (QuestionText is 600–1,600 chars; never fully expanded by default) → collapsed Example panel only when `ExampleText` non-empty → growing TextArea (`.zcsrInput`) with N/A `Switch` rendered **only when `NaAllowed`** (on = field disabled, `NaFlag=true`, requirement satisfied) → `UploadSet` (`.zcsrAttach`) only when `AttachMode !== 'N'`, labeled "Optional Attachments" (O) / "Required evidence" (R).
++
++### 4.2 Instructions panel
++`Inptype === 'C'` rows render in a collapsed panel above the first card, auto-expanded on a checklist's first open. ⚠️ Open flag: whether the live `ToItems` actually returns `C` rows — see `NOTES.md`; if it doesn't, raise it (fallback design: read `QuestionSet` for the header's `CatalogVers`), don't improvise.
++
++### 4.3 Worklist & cascading filters
++Growing table (threshold 25), sorted by `DueDate`; LOB → Market Segment ComboBoxes cascade via `MarketSegVHSet`'s `Lob` property; whole-LOB CSR rows display Segment "All" (`MarketSeg === 'ALL'`). Status always `ObjectStatus` text + `formatter.statusState`.
++
++### 4.4 Styling
++Custom CSS is exactly three classes — `.zcsrInput` (green response), `.zcsrAttach` (yellow evidence), `.zcsrComment` (gray guidance) — mirroring the client's template color semantics. Restyle nothing else; color never carries meaning alone.
++
++### 4.5 sap.ushell guard (kept from the CDC playbook — still right)
++```javascript
++var oUser;
++try { var c = sap.ui.require("sap/ushell/Container");
++      oUser = c && c.getUser && c.getUser(); } catch (e) { /* standalone */ }
++if (!oUser) { oUser = { getId: function(){return "LOCAL_USER";}, getFullName: function(){return "Local User";} }; }
++```
++Standalone `ui5 serve` has no FLP; production runs inside the launchpad. Guard every ushell access. User identity is display-only — authorization is entirely server-side (`ZCSR_ASSIGN` + `Z_CSR_CHK`).
++
++### 4.6 Busy/availability
++Initialize the `app` JSON model with defaults before first data; clear busy from `metadataLoaded()`/`attachMetadataFailed` and request handlers — on V2 these APIs exist and are the right ones (the CDC playbook's warning against them applies to V4 only).
++
++### 4.7 Catalog app specifics (zcsr.catalog)
++FlexibleColumnLayout; `Section`/`Inptype` derived from the active IconTabBar tab on create — never rendered as inputs; `QuestionId` read from the create response, never constructed client-side; writes only where `Editable === true`; explicit Save + dirty-guard (no autosave); reorder = two immediate Seqnr MERGEs. Full contract: `ClaudeCode/CLAUDE-catalog.md`.
++
++## 5. Troubleshooting (V2 / CSR)
++
++| Symptom | Likely cause | Fix |
++|---|---|---|
++| Empty worklist, no error | **Row-level `ZCSR_ASSIGN` scope** — user has no valid assignment for the scope/period | Check assignments (SM30) / test user, not the query |
++| 403 on a function import | `Z_CSR_CHK` authorization (ACTVT 70 for catalog writes) | PFCG role, not client code |
++| Status doesn't change / 405 | Tried a property update on `Status` or `CatalogVersion` | Use the function import (3.2) — status never changes via MERGE |
++| Edits never reach the server | Pending changes not flushed | `submitChanges()` from the debounce; check `hasPendingChanges()` |
++| Stale header after submit/review | `refreshAfterChange` is false by design | Refresh the element/list binding explicitly in the FI success handler |
++| Submit error shows only one message | Read only `error.message` | Parse `innererror/errordetails` and map each `target` QuestionId (3.4) |
++| Dates show off-by-one | Missing `UTC: true` on a `display-format="Date"` field | Bind with `sap.ui.model.type.Date`, `formatOptions.UTC: true` |
++| Function import 404 on mockserver | MockServer doesn't auto-mock FIs | Add/fix the explicit request handler in `mockserver.js` |
++| Upload 403 | CSRF token stale | `refreshSecurityToken()` / let UploadSet use the model's token; verify slug format |
++| Download corrupt or renamed | Client transformed the stream | Use `$value` URL directly; filename comes from `Content-Disposition` |
++| Instructions panel empty against live service | `ToItems` may not include `Inptype 'C'` rows (open flag) | STOP and raise per `NOTES.md` — don't work around silently |
++| `metadataLoaded is not a function` | You're on a V4 model — wrong playbook | This project is V2; re-read the banned list at the top |
++| Table in hidden container empty | Binding suspended while invisible | Bind/resume after visibility flips (legacy lesson, still true) |
++
++## 6. Agent Workflow
++
++1. Read Onboarding + this playbook + `NOTES.md` + the governing prompt for your assignment + the view/controller you're touching + the relevant spec section in `design/`.
++2. Confirm which build phase the task belongs to (`ClaudeCode/PROMPT-build-frontend.md`); don't build ahead of phase without approval.
++3. Implement the smallest change; run against the mockserver; console clean; checklist from Onboarding §6.
++4. Update affected docs + `NOTES.md`. State what changed, why, and anything needing on-system action.
++
++## 7. Current Focus (2026-10-26)
++
++Backend complete; service live on DEV. **Frontend Phase 0 starts now**: booting `zcsr.checklist` shell + mockserver (the verified starter zip is the shortcut), then Worklist → procedure cards → Sign & Submit → review → admin → tests → Phase 7 live smoke test, each gated per `ClaudeCode/PROMPT-build-frontend.md`. Before Phase 2, read the `ToItems` flag in `NOTES.md`; before Phase 7, ask the architect for the DEV host/client for the proxy.
+diff --git a/UI5_AGENT_PLAYBOOK_CDC.md b/UI5_AGENT_PLAYBOOK_CDC.md
+deleted file mode 100644
+index 267c39c..0000000
+--- a/UI5_AGENT_PLAYBOOK_CDC.md
++++ /dev/null
+@@ -1,156 +0,0 @@
+-# E008 UI5 Playbook — OData V4 on S/4HANA 2025 (on-prem)
+-
+-**Purpose:** Frontend patterns for AI agents on E008. Replaces the legacy UI5 playbook for this project.
+-**Stack:** SAPUI5 delivered with S/4HANA 2025 (served by the system/FLP — verify exact version with `sap.ui.version` on the dev system; do not pin from memory), theme **Horizon** (`sap_horizon`), **OData V4 model**, freestyle cockpit + FE V4 List Report.
+-**Last Updated:** 2026-07-31 — living doc.
+-
+-> ⚠️ Legacy patterns that do NOT apply here: `/Date(timestamp)/` parsing, `oModel.read()/create()/getProperty()` V2 calls, JSON/OData dual-mode detection, Vercel-hosted UI5 libraries, `sap_bluecrystal`, compatVersion 1.71. If you catch yourself writing any of these, you're following the wrong playbook.
+-
+----
+-
+-## 1. Bootstrap & Local Dev
+-
+-UI5 comes **from the system**, never a CDN:
+-```html
+-<script id="sap-ui-bootstrap"
+-    src="/sap/public/bc/ui5_ui5/resources/sap-ui-core.js"
+-    data-sap-ui-theme="sap_horizon"
+-    data-sap-ui-async="true"
+-    data-sap-ui-compatVersion="edge"
+-    data-sap-ui-resourceroots='{"cdc.vaccreq": "./"}'>
+-</script>
+-```
+-Local development uses **ui5-tooling with a proxy** to the dev system so the app at `localhost` talks to the real service (`ui5.yaml` → `fiori-tools-proxy` / backend middleware pointing at the dev host, SSO/basic auth per landscape). There is no mock server target in `package.json`. Week-1-only stub rule: see Onboarding §3.2.
+-
+-### 1.1 Verified 2026-07-28 local setup
+-
+-- Current dev host: `https://sapapp2dh1.cdc.gov:44300` (`sap-client=100`).
+-- For `frontend/cockpit`, `/resources` should be proxied from `https://sapapp2dh1.cdc.gov:44300/sap/public/bc/ui5_ui5`.
+-- Do **not** proxy `/test-resources` from that host for sandbox runs on this landscape. `sap/ushell/bootstrap/sandbox.js` is not available there and local sandbox boot fails with `sap is not defined` follow-on errors.
+-- For `start-local`, let UI5 tooling serve `/test-resources` locally while proxying `/resources` and `/sap` only.
+-- Internal TLS trust is incomplete on this workstation; local-only configs may need `ignoreCertErrors: true` to talk to the dev host.
+-- The current local metadata snapshot is `frontend/cockpit/webapp/localService/metadata.xml`, sourced from `design/so.xml`.
+-
+-### 1.2 Deployment on this landscape
+-
+-- `fiori deploy` can generate `ui5-deploy.yaml`, but on this workstation it falls back to HTTP username/password auth.
+-- If the developer only has SNC logon and no ABAP password, do **not** assume CLI deploy is viable.
+-- Preferred path for this repo on the current landscape: build locally, then deploy the UI5 archive from an SNC-enabled SAP tool/session on the ABAP side, then maintain FLP content on-system.
+-- Keep repo secrets out of `.env`; interactive CLI prompts are acceptable for password-based systems, but they do not solve SNC-only landscapes.
+-
+-## 2. Manifest & Model (V4)
+-
+-```json
+-"sap.app": { "dataSources": { "mainService": {
+-  "uri": "/sap/opu/odata4/sap/zui_vaccinerequest_o4/srvd/sap/zui_vaccinerequest/0001/",
+-  "type": "OData", "settings": { "odataVersion": "4.0" } } } },
+-"sap.ui5": { "models": { "": {
+-  "dataSource": "mainService",
+-  "settings": { "operationMode": "Server", "autoExpandSelect": true, "groupId": "$auto" } } } }
+-```
+-- One default model, created by manifest. Do not also create it in Component.js.
+-- `autoExpandSelect: true` — bindings request only bound properties; add fields to views/`$select`, not by widening CDS.
+-- Updates batch under `$auto`; explicit `submitBatch` only for deliberate group control (e.g., the Save button uses an update group).
+-
+-## 3. Core V4 Patterns
+-
+-### 3.1 Contexts, not payloads
+-```javascript
+-// list binding + create (returns a context immediately; server round-trip async)
+-var oList = this.getView().byId("itemsTable").getBinding("items");
+-var oCtx  = oList.create({ Product: "", Quantity: null });
+-// read a property
+-oCtx.requestProperty("FundType").then(...);
+-// object page binding
+-this.getView().bindElement({ path: "/VaccineRequest(VaccineRequestID='0000012345')" });
+-```
+-Never build URLs by string concat; never bypass the model with fetch/AJAX.
+-
+-### 3.2 Bound actions (cancel, resubmit, …)
+-```javascript
+-var oAction = this.getModel().bindContext(
+-    "com.sap.gateway.srvd.zui_vaccinerequest.v0001.cancelOrder(...)", oCtx);
+-oAction.setParameter("RejectionReason", sReason);
+-oAction.invoke().then(function () { /* refresh via side effects */ });
+-```
+-Action names come from `$metadata` — copy them, don't guess the namespace. Factory actions (copyOrder) return the new entity's context in the action result; navigate with it.
+-
+-### 3.3 Side effects
+-Field interdependencies (Provider→address/contact, Quantity→FundType) are **annotated server-side**; the V4 model executes them. Manual `requestSideEffects` on a context is the exception (after custom flows), not the routine.
+-
+-### 3.4 Field control → UI
+-Enablement/mandatory/hidden arrive as field-control metadata from the RAP feature handler. Bind with the standard mechanisms (`Core.FieldControl` annotation paths / FE building blocks where used). **Never** mirror status logic in a controller — Onboarding guardrail 5.
+-
+-### 3.5 ETag / 412 handling (no draft!)
+-Every update/action carries If-Match automatically. Handle failure centrally:
+-```javascript
+-// in a message/technical error handler
+-if (oError.status === 412) { MessageBox.warning(oBundle.getText("orderChangedReload"),
+-  { actions: [MessageBox.Action.OK], onClose: () => oCtx.refresh() }); }
+-```
+-Plus a client-side unsaved-changes guard on navigation (`hasPendingChanges()` on the model/binding → confirm dialog).
+-
+-### 3.6 Messages
+-Use `sap/ui/core/Messaging` + `MessagePopover`; backend messages arrive with element targets — the SectionFactory maps a target path to its panel and auto-expands it before setting focus (Onboarding testing checklist item).
+-
+-### 3.7 Dates & types
+-V4 uses ISO Edm.Date/DateTimeOffset with UI5 type system (`sap.ui.model.odata.type.*` bound automatically). Delete any `/Date(...)/` regex on sight.
+-
+-## 4. E008-Specific UI Patterns
+-
+-### 4.1 FCL shell
+-`sap.f.FlexibleColumnLayout` + `FlexibleColumnLayoutSemanticHelper`; routes: list (begin) → cockpit (mid) → drill-in (end). The cockpit is never squeezed: use layouts that keep the mid column ≥ 60% when editing (`TwoColumnsMidExpanded`), full-screen action available.
+-
+-### 4.2 Panel stack + SectionFactory
+-Detail screen = vertical `sap.m.Panel`(expandable) stack, one per functional area, order/visibility from the **section list the service exposes** (resolver output) — the factory reads it, instantiates section fragments lazily on first expand, wires each to the common section contract (init-with-context, contribute-validation, receive-messages). Sticky anchor strip above the stack; expand/collapse state persisted per user+order type (personalization service). Section-level actions live on the panel `headerToolbar`.
+-
+-### 4.3 sap.ushell guard (kept from legacy — still right)
+-```javascript
+-var oUser;
+-try { var c = sap.ui.require("sap/ushell/Container");
+-      oUser = c && c.getUser && c.getUser(); } catch (e) { /* standalone */ }
+-if (!oUser) { oUser = { getId: () => "LOCAL_USER", getFullName: () => "Local User" }; }
+-```
+-Standalone runs (ui5-tooling serve) have no FLP; production runs inside FLP. Guard every ushell access. Note: user identity is display-only in the client — authorization is entirely server-side (DCL + instance auth).
+-
+-### 4.4 System availability (kept, V4-flavored)
+-Keep the named `AppData` JSON model initialized with defaults (`SystemAvailable: true`) so the shell renders before first data; flip it from the model's `dataReceived`/error events, not from a custom ping.
+-
+-### 4.5 List Report
+-FE V4 app: filter operators, variants, export come from annotations — resist writing code there; extensions only via the FE V4 extension points if genuinely needed, and log why.
+-
+-## 5. Troubleshooting (V4/E008)
+-
+-| Symptom | Likely cause | Fix |
+-|---|---|---|
+-| Empty list, no error | **DCL jurisdiction filter** — test user has no Sales Office auth | Check PFCG values, not the query |
+-| Property missing at runtime | `autoExpandSelect` — field not bound anywhere | Bind it or add to `$select`; don't disable autoExpandSelect |
+-| Action 404 | Guessed namespace in `bindContext` | Copy the exact name from `$metadata` |
+-| 412 on save | Stale ETag (someone saved first) | Central 412 handler → refresh dialog (3.5) |
+-| Changes not sent | Pending in an update group | Check `groupId`; `submitBatch` for deliberate groups |
+-| Table in hidden container empty | Binding suspended while invisible | Bind/resume after visibility flips (legacy lesson, still true) |
+-| CORS/auth weirdness locally | Proxy misconfig | Fix `ui5.yaml` proxy; never route via external hosts |
+-| Blank screen | AppData defaults missing / visibility expression | Initialize defaults first (4.4) |
+-| `sap-ui-core.js` 400/404 locally | Incorrect `/resources` proxy mapping to SAP host | Proxy `/resources` from `/sap/public/bc/ui5_ui5`; verify on the active localhost port |
+-| `sandbox.js` 404 locally | `/test-resources` incorrectly proxied to SAP host | Serve `/test-resources` locally for sandbox runs |
+-| `sap is not defined` from `locate-reuse-libs.js` | UI5 bootstrap or sandbox bootstrap failed earlier | Fix `sap-ui-core.js` / `sandbox.js` first; the JS error is secondary |
+-| `400 Bad Request` on `EntitySet('key')/.` | A control is bound to `path: "."` (whole entity/row) instead of a concrete property | Bind explicit `ServiceSchema.*` property paths/`parts`; formatters take plain values, not a row object |
+-| `encountered unknown setting 'X' for class sap.ui.comp.filterbar.FilterBar` | Property copied from the different `sap.ui.mdc.FilterBar` control | Check the actual `sap.ui.comp.filterbar.FilterBar` API (e.g. `showFilterConfiguration`, not `showAdaptFiltersButton`) before using a property name |
+-| App-level busy overlay never clears | Code that flips `appView>/busy` back to `false` is missing/commented out, or calls V2-only APIs (`metadataLoaded()`, `attachMetadataFailed`) that don't exist on the V4 model | Clear busy via `getModel().getMetaModel().requestObject("/")`.then/.catch on the V4 model |
+-| Same fragment/section content rendered twice | Race in a lazy-load guard: the "loaded" flag is only set inside the async `.then()`, so two near-simultaneous calls (e.g. `onAfterRendering` and a route-matched `rebind()`) both start a load | Set the "loaded"/"loading" flag synchronously *before* the async call, not after it resolves |
+-
+-## 6. Agent Workflow
+-
+-1. Read Onboarding + this playbook + the view/controller you're touching + relevant spec section.
+-2. Confirm which phase (MVP-1/MVP-2/v1.1) the task belongs to; don't build ahead of phase without approval.
+-3. Implement smallest change; run against dev service; console clean; checklist from Onboarding §6.
+-4. Update affected docs. State what changed, why, and anything needing on-system action.
+-
+-## 7. Phase 2 Focus (starting 2026-07-31)
+-
+-Phase 1 (read-only prototype: FCL shell, master/detail routing, filterable list, panel sections, all live against the temporary standard V4 service) is complete and stable — see `NOTES.md` for the stabilization bug list. Phase 2 reshapes the UI to match customer requirements for two areas:
+-
+-- **Search** — the Master-view filter bar (`sap.ui.comp.filterbar.FilterBar` in `Master.view.xml` / `Master.controller.js`).
+-- **Content** — the Detail-view panel sections (`sections/*.fragment.xml` + `SectionFactory.js`).
+-
+-Before changing either: confirm which fields/entity sets the customer requirement needs are already exposed by the current service via `ServiceSchema.js`; if something is missing, file a backend request rather than working around it client-side (Onboarding §5).
+-- 
+2.43.0
+
