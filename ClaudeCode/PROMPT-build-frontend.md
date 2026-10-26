@@ -1,27 +1,32 @@
 # Claude Code Build Prompts — CSR Auditing Application Frontend (VS Code)
 
-How to use: the governing prompt already sits at `checklist/CLAUDE.md` (plus the thin
-router at the repo root). Open the repo in VS Code and start Claude Code (`claude`)
-with `checklist/` as the working directory — both files load automatically and govern
-every session — these prompts only tell it **what to
-build next**; the rules live in CLAUDE.md. Paste one phase at a time, review
-the result, commit, then move on. Each phase ends with its own verification
-gate, so never accept "done" without it.
+How to use: the governing prompt already sits at `checklist/CLAUDE.md`, and the thin
+router at the repo root loads everywhere. Open the repo in VS Code and start Claude
+Code (`claude`) with **`checklist/` as the working directory** — both files load
+automatically and carry the rules; these prompts only say **what to build next**.
+Paste one phase at a time, review the result, commit and push, then move on. Each
+phase ends with its own verification gate — never accept "done" without it.
 
-Prerequisite in the repo root: `ZCSR_CHECKLIST_SRV_metadata.xml` (copied to
-`webapp/localService/metadata.xml` in Phase 0) and the two seed workbooks
-(`ZCSR_QCATALOG_seed_v0001.xlsx`, `ZCSR_value_tables_seed.xlsx`).
+Prerequisites (already in the repo): the contract at
+`design/ZCSR_CHECKLIST_SRV_metadata.xml` (Phase 0 copies it to
+`webapp/localService/metadata.xml`; NEVER the stale `design/zcsr_metadata.xml`) and
+the two seed workbooks `design/ZCSR_QCATALOG_seed_v0001.xlsx` +
+`design/ZCSR_value_tables_seed.xlsx`.
 
 ---
 
 ## Phase 0 — Repo setup & booting shell
 
 ```
-Set up the zcsr.checklist repository per CLAUDE.md §2–§3 so the app boots
-against a mockserver.
+Set up the zcsr.checklist app in checklist/ (your working directory) per
+CLAUDE.md §2–§3 so it boots against a mockserver. checklist/CLAUDE.md already
+exists — keep it; create everything else alongside it. Touch nothing outside
+checklist/ except appending to NOTES.md.
 
-If zcsr-checklist-starter.zip is present in the repo, unzip it here, run
-npm install and npm start, and verify instead of scaffolding from scratch.
+If zcsr-checklist-starter.zip is present (repo root or checklist/), unzip it,
+strip its inner zcsr-checklist/ wrapper so package.json, ui5.yaml and webapp/
+land directly in checklist/, run npm install and npm start, and verify instead
+of scaffolding from scratch.
 Otherwise create: package.json (scripts exactly as CLAUDE.md §2), ui5.yaml,
 eslint config, webapp/index.html + index.js (UI5 1.108 bootstrap, sap_horizon,
 mockserver started for local dev), manifest.json with the mainService
@@ -34,9 +39,10 @@ model/formatter.js (statusState, severityState, sectionText per CLAUDE.md §8),
 model/roles.js (?role URL param stub, default AD, documented as UI convenience
 only), css/style.css with ONLY the three .zcsr* classes, i18n/i18n.properties.
 
-Copy ZCSR_CHECKLIST_SRV_metadata.xml to webapp/localService/metadata.xml and
-treat it as read-only. Build localService/mockserver.js against it and
-generate mockdata JSONs from the two seed workbooks (versions 0001 Released +
+Copy ../design/ZCSR_CHECKLIST_SRV_metadata.xml to webapp/localService/metadata.xml
+and treat it as read-only. Build localService/mockserver.js against it and
+generate mockdata JSONs from the two seed workbooks in ../design/ (versions 0001
+Released +
 0002 Draft; 6–8 demo ChecklistHeaderSet instances covering every status
 NS/IP/SB/UR/RT/CP with items carrying the denormalized catalog fields; VH sets
 from the value-table workbook). Mock ALL NINE function imports explicitly —
@@ -161,21 +167,24 @@ The backend ZCSR_CHECKLIST_SRV is live. Add a ui5.yaml proxy for
 /sap/opu/odata to the FES host (I will provide host/client — ask, do not
 guess) and an index toggle to skip mockserver.init(). Smoke-test against the
 live service and report discrepancies WITHOUT fixing silently, especially:
-(1) whether ToItems returns Inptype 'C' instruction rows or only 'I' — if only
-'I', propose the §6 Instructions panel reading QuestionSet instead and wait
-for my decision; (2) field formats (dates, guids) versus the mock; (3) the
-real error container shape from SubmitChecklist. metadata.xml stays read-only
-— if the live metadata differs from the repo copy, stop and raise it.
+(1) whether ToItems returns Inptype 'C' instruction rows or only 'I' (NOTES.md
+open flag #1) — if only 'I', propose the §6 Instructions panel reading
+QuestionSet instead and wait for my decision; (2) field formats (dates, guids)
+versus the mock; (3) the real error container shape from SubmitChecklist.
+metadata.xml stays read-only — if the live metadata differs from the repo
+copy, stop and raise it. Record the outcomes in NOTES.md (resolve flag #1
+either way).
 ```
 
 ---
 
-## Companion app kickoff (separate repo/folder, after Phase 7)
+## Companion app kickoff (in `catalog/`, after Phase 7)
 
-Place `catalog/CLAUDE.md` as that folder's `CLAUDE.md`, then:
+The governing prompt already sits at `catalog/CLAUDE.md`; start Claude Code with
+`catalog/` as the working directory, then:
 
 ```
-Set up zcsr.catalog per CLAUDE.md §2–§3 (own ui5.yaml, FlexibleColumnLayout
+Set up zcsr.catalog in catalog/ per CLAUDE.md §2–§3 (own ui5.yaml, FlexibleColumnLayout
 shell, mockserver with versions 0001 Released + 0002 Draft and the
 CopyCatalogVersion / ReleaseCatalogVersion mocks), then build in this order,
 verifying each step like the main app: 1) CatalogList with the two-filter
