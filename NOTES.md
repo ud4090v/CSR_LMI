@@ -1,0 +1,71 @@
+# NOTES — LMI CSR Auditing Application
+
+Running log of decisions, corrections, bugs and open flags. Append dated entries;
+newest first. Agents: read the **Open flags** section before starting any task.
+
+---
+
+## Open flags (resolve, then move to the log with the outcome)
+
+1. **`ToItems` and instruction rows (affects frontend Phase 2 + Phase 7).**
+   The UI design renders the Instructions panel from `ChecklistItem` rows with
+   `Inptype = 'C'`. The reference ABAP `GENERATE_INSTANCES` created `ZCSR_ITEM`
+   records only for `INPTYPE = 'I'`. Whether the live DPC returns `C` rows under
+   `ToItems` (synthesized from the bound catalog version) or not decides the
+   frontend approach: panel from `ToItems` vs. panel from `QuestionSet` for the
+   header's `CatalogVers`. **Verify on the first live-service call; do not
+   improvise client-side.**
+2. **`NA_ALLOWED` missing from the catalog seed workbook.**
+   `design/ZCSR_QCATALOG_seed_v0001.xlsx` predates the v0.2 field. Before (or
+   at) catalog load, derive the column from the client template's explicit N/A
+   permissions (`LOB CSR and Qtr Close Chklsts - 2021-3Q - Final-6.xlsm`).
+   Frontend mock data meanwhile uses demo values only.
+3. **Stale metadata copy in `design/`.**
+   `design/zcsr_metadata.xml` is the obsolete v0.1 contract (Section CHAR 40,
+   incomplete Question entity, no CatalogVersion/version FIs). Recommend
+   deleting it or renaming to `zcsr_metadata_v0.1_OBSOLETE.xml`. The contract
+   is `design/ZCSR_CHECKLIST_SRV_metadata.xml`.
+4. **Duplicate readme in `ABAP/`.**
+   `ABAP/readme.md` (stub) duplicates `ABAP/README.md` (the real activation
+   guide + message class texts). Recommend deleting the stub — on
+   case-insensitive filesystems (Windows checkouts) the pair collides.
+5. **Market Segment templates (CSRM/QCLM) still pending from the client.**
+   Catalog version 0001 covers CSRL + QCLL only. When the segment templates
+   arrive they may grow the `ZCSR_SECTION` domain (DDIC transport each) — see
+   Tech Spec changelog v0.2 item 7.
+
+---
+
+## Log
+
+### 2026-10-26 — Backend complete; frontend phase begins; agent scaffolding adapted
+- `ZCSR_CHECKLIST_SRV` is live on DEV; all ABAP components activated
+  (reference copies in `ABAP/`, contracts in the ABAP Development Specification).
+- Agent scaffolding (`AGENT_INSTRUCTIONS.txt`, `AGENT_ONBOARDING.md`,
+  `UI5_AGENT_PLAYBOOK.md`, this file) adapted from the CDC/E008 originals to
+  LMI CSR. Key inversions vs. CDC: OData **V2** not V4; freestyle UI5 **1.108**
+  not S/4-delivered; **mockserver-first** local dev (CDC banned mocks); CDN
+  bootstrap permitted for local dev (CDC banned external hosting). CDC-only
+  rules (ETag/412 flows, RAP field control, draftless-RAP concerns) removed.
+- Frontend build plan: `ClaudeCode/PROMPT-build-frontend.md` (Phases 0–7 with
+  verification gates). Verified starter repo `zcsr-checklist-starter.zip`
+  (booting shell + Worklist + mockserver with all nine function imports +
+  mock data generated from the seed workbooks) available as the Phase 0 shortcut.
+
+### 2026-08/09 — Design-suite corrections worth remembering (from the design phase)
+- **Gateway business exception is `/IWBEP/CX_MGW_BUSI_EXCEPTION`** (with the
+  DPC message container). Early drafts said `/IWBEP/CX_MPC_BUSI_EXCEPTION`,
+  which does not exist; all docs and prompts were corrected. If you see the
+  MPC variant anywhere, it's a leftover — fix it and log here.
+- `SECTION` converted from CHAR 40 free text to fixed-value domain
+  **`ZCSR_SECTION`** (`P` = Procedures, `I` = Instructions / Notes); adding
+  future section values is a DDIC change + transport.
+- v0.2 template-driven model deltas: INPTYPE 'A' removed in favor of
+  `ATTACH_MODE` (N/O/R) + `RESP_REQUIRED`; `TITLE`/`EXAMPLE_TEXT` added and
+  denormalized into `ChecklistItem`; `NA_ALLOWED` added; `MARKET_SEG` accepts
+  literal `'ALL'`; `ZCSR_MSEG` carries parent LOB (cascading filters);
+  submit labeled **"Sign & Submit"**.
+- v0.3 catalog deltas: `ZCSR_QVERS` version table (Draft/Released, one-way
+  release), `QuestionSet` CRUD gated by server-computed `Editable`,
+  `CopyCatalogVersion`/`ReleaseCatalogVersion` function imports, change
+  documents extended to catalog writes, ACTVT 70 for catalog maintenance.
