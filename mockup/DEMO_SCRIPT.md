@@ -112,3 +112,33 @@ A: Through the catalog versioning system. A new draft version is created, questi
 
 **Q: What does the AI actually do?**
 A: An in-house LLM reviews submitted responses against the procedure requirements and flags potential issues — sample size shortfalls, mismatched attachments, referenced periods that don't match the current quarter. It's advisory only: flags never block submission, never auto-approve, and an AI outage produces zero flags (not an error). The reviewer sees the flags as suggestions, not decisions.
+
+---
+
+## Guided tour mode (`?guide=1`)
+
+The mockup carries a built-in, element-level guided tour, activated by a runtime
+parameter — nothing to install, works from `file://`:
+
+```
+index.html?guide=1
+```
+
+- A **"Guided tour"** button appears bottom-right (keyboard shortcut **G**).
+- Starting it spotlights the current screen's UI elements one by one with a
+  plain-language explanation — navigation, KPIs, filters, the procedure-card
+  anatomy, AI findings, admin matrix, catalog versions.
+- **← / →** step, **Esc** exits; the tour covers whichever screen is open
+  (Worklist, Checklist, Review Queue, Review, Admin, Catalog).
+- Without the parameter the tour is completely absent — the presenter-rail demo
+  (`P`, ← / →) is unaffected and the two modes are independent.
+
+Use it to let stakeholders explore on their own after the meeting: send the
+mockup with `?guide=1` and the app explains itself.
+
+## Companion deck
+
+`CSR_Product_Demo_Walkthrough.pptx` (this folder) — the 14-slide presentation
+for the acceptance meeting: pains → solution, annotated screen walkthroughs
+(real mockup screenshots), role workflows, guided-tour slide, and the
+acceptance ask. Speaker notes on every slide.

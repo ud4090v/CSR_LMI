@@ -1428,3 +1428,91 @@ body {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
 }
+
+/* === Guided tour mode (?guide=1) ============================================ */
+.guide-fab {
+  position: fixed;
+  bottom: 4.25rem;
+  right: 1.25rem;
+  z-index: 950;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1rem;
+  border: 1px solid var(--brand-blue);
+  border-radius: 1.25rem;
+  background: var(--card-bg);
+  color: var(--brand-blue);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(29, 45, 62, 0.15);
+  transition: background 150ms ease, color 150ms ease;
+}
+.guide-fab:hover, .guide-fab.active {
+  background: var(--brand-blue);
+  color: var(--ink-inverse);
+}
+.guide-fab__key {
+  display: inline-block;
+  padding: 0 0.4rem;
+  border: 1px solid currentColor;
+  border-radius: 0.25rem;
+  font-size: 0.7rem;
+}
+.guide-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 960;
+}
+.guide-spotlight {
+  position: fixed;
+  z-index: 970;
+  border-radius: 0.5rem;
+  box-shadow: 0 0 0 9999px rgba(29, 45, 62, 0.55), 0 0 0 2px var(--brand-blue);
+  pointer-events: none;
+  transition: top 180ms ease, left 180ms ease, width 180ms ease, height 180ms ease;
+}
+.guide-tip {
+  position: fixed;
+  z-index: 980;
+  background: var(--card-bg);
+  border-radius: 0.5rem;
+  box-shadow: 0 8px 24px rgba(29, 45, 62, 0.3);
+  padding: 1rem 1.25rem;
+  animation: fadeSlideIn 180ms ease;
+}
+.guide-tip__step {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--brand-blue);
+  margin-bottom: 0.3rem;
+}
+.guide-tip__title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink-primary);
+  margin-bottom: 0.35rem;
+}
+.guide-tip__text {
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--ink-secondary);
+}
+.guide-tip__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.85rem;
+}
+.guide-tip__hint {
+  font-size: 0.75rem;
+  color: var(--ink-tertiary);
+}
+.guide-tip__btns {
+  display: inline-flex;
+  gap: 0.5rem;
+}

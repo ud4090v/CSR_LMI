@@ -34,6 +34,17 @@ newest first. Agents: read the **Open flags** section before starting any task.
 
 ## Log
 
+### 2026-10-27 — Mockup guided tour + client demo deck
+- Mockup enhanced with **in-app guidance mode** behind a runtime parameter:
+  `index.html?guide=1` (also `tour=1`) shows a "Guided tour" button / G key;
+  spotlight coachmarks explain every UI element per screen (guide.js + CSS;
+  absent without the parameter; independent of presenter mode). Verified
+  headless: param gating, 8 worklist + 11 detail steps, zero console errors.
+- **`mockup/CSR_Product_Demo_Walkthrough.pptx`**: 14-slide client demo deck —
+  pains→solution, annotated walkthroughs of all six screens (real screenshots,
+  numbered callouts), analyst/reviewer/admin workflows, guided-tour slide,
+  acceptance ask. Speaker notes throughout. DEMO_SCRIPT.md documents both.
+
 ### 2026-10-26 — Mockup track added ahead of the full build
 - Client asked for a quick demo mockup for acceptance BEFORE the full frontend
   build. New track: `ClaudeCode/PROMPT-mockup-demo.md` (phases M1-M4) governed
