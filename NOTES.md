@@ -34,6 +34,16 @@ newest first. Agents: read the **Open flags** section before starting any task.
 
 ## Log
 
+### 2026-10-27 — AI Integration Specification added
+- `design/CSR_AI_Integration_Specification.docx` (v0.1, 7 pp): the AI
+  architecture made explicit — backend-only decision rationale (credential
+  custody, flags-as-audit-artifacts, unattended paths, CORS/topology, data
+  governance), SM59/STRUST wiring, prompt/response contract, three trigger
+  paths with sequence diagram, failure semantics, platform confirmation
+  checklist (9 items for the LLM platform team), and the proposed
+  TVARVC parameterization (ZCSR_LLM_MODEL / ZCSR_LLM_PATH) for
+  ZCL_CSR_AI_CLIENT — to be applied on-system, then synced to ABAP/.
+
 ### 2026-10-27 — Mockup guided tour + client demo deck
 - Mockup enhanced with **in-app guidance mode** behind a runtime parameter:
   `index.html?guide=1` (also `tour=1`) shows a "Guided tour" button / G key;
