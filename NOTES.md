@@ -34,6 +34,16 @@ newest first. Agents: read the **Open flags** section before starting any task.
 
 ## Log
 
+### 2026-10-27 — AI business briefing for stakeholder buy-in
+- `design/CSR_AI_Business_Briefing.pptx` (6 slides + walkthrough in speaker
+  notes) and `design/CSR_AI_business_diagram.png`: business-language AI story —
+  one-picture flow (signed submission -> AI reads -> advisory notes -> human
+  decision, inside-your-network boundary), real finding example (CSRL-P01
+  7.7% vs 10%), six wired-in guardrails incl. "reviews work, not workers" and
+  the off switch, per-role value, controls + three asks (design blessing,
+  written retention confirmation, pilot reviewers). Companion to the AI
+  Integration Specification; no technical identifiers used.
+
 ### 2026-10-27 — AI Integration Specification added
 - `design/CSR_AI_Integration_Specification.docx` (v0.1, 7 pp): the AI
   architecture made explicit — backend-only decision rationale (credential
